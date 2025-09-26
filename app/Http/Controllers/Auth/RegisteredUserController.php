@@ -44,6 +44,10 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (config('settings.disable_register')) {
+            return back()->withErrors(['username' => ["Register page is disabled!"]]);
+        }
+
         $rules = [
             'username' => ['required', 'regex:/^[A-Za-z0-9]*$/', 'min:6', 'max:16', 'unique:' . User::class],
             'email' => ['required', 'string', 'email', 'max:70'],

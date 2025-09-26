@@ -4,6 +4,7 @@ namespace App\Models\SRO\Account;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class SkSilk extends Model
 {
@@ -55,6 +56,15 @@ class SkSilk extends Model
             '2' => 'silk_point'
         ];
 
+        if ((int)$type === 0) {
+            $username = TbUser::where('JID', $jid)->value('StrUserID');
+            if (!$username) {
+                return false;
+            }
+
+            return self::setSkSilkLive($username, $amount);
+        }
+
         self::firstOrCreate(
             ['JID' => $jid],
             [
@@ -65,6 +75,24 @@ class SkSilk extends Model
         );
 
         return self::where('JID', $jid)->increment($types[$type], $amount);
+    }
+
+    public static function setSkSilkLive($username, $amount, $pkgId = 0, $price = 0, $orderId = 'Website')
+    {
+        return DB::statement("
+            EXEC [" . DB::connection('account')->getDatabaseName() . "].[CGI].[CGI_WebPurchaseSilk]
+                @OrderID = :orderID,
+                @UserID = :userID,
+                @PkgID = :pkgID,
+                @NumSilk = :numSilk,
+                @Price = :price
+        ", [
+            'orderID' => $orderId,
+            'userID'  => $username,
+            'pkgID'   => $pkgId,
+            'numSilk' => $amount,
+            'price'   => $price,
+        ]);
     }
 
     public static function getSilkSum()

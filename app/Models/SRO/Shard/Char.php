@@ -177,6 +177,7 @@ class Char extends Model
             ];
             $query->groupBy(...$groupBy)
                 ->orderByDesc('_Char.CurLevel')
+                ->orderByDesc('_Char.ExpOffset')
                 ->limit($limit);
             return $query->get();
         });

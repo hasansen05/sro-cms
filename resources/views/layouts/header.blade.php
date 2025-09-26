@@ -7,11 +7,12 @@
 
             <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
                 <li><a href="{{ url('/') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }} px-2 text-white">{{ __('Home') }}</a></li>
+                <li><a href="{{ route('news') }}" class="nav-link {{ request()->routeIs('news') ? 'active' : '' }} px-2 text-white">{{ __('News') }}</a></li>
                 <li><a href="{{ route('download') }}" class="nav-link {{ request()->routeIs('download') ? 'active' : '' }} px-2 text-white">{{ __('Download') }}</a></li>
                 <li><a href="{{ route('ranking') }}" class="nav-link {{ request()->routeIs('ranking') ? 'active' : '' }} px-2 text-white">{{ __('Ranking') }}</a></li>
 
                 <li class="dropdown">
-                    <a href="#" class="nav-link px-2 text-white dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">{{ __('Search') }}</a>
+                    <a href="#" class="nav-link px-2 text-white dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">{{ __('Server History') }}</a>
                     <ul class="dropdown-menu" style="">
                         <li><a class="dropdown-item" href="{{ route('pages.timers') }}">{{ __('Event Times') }}</a></li>
                         <li><a class="dropdown-item" href="{{ route('pages.uniques') }}">{{ __('Unique Tracker') }}</a></li>
@@ -120,8 +121,8 @@
                                 <i class="fa-solid fa-user"></i> {{ Auth::user()->username }}
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('profile') }}">{{ __('Account') }}</a></li>
-                                <li><a class="dropdown-item" href="{{ route('profile.edit') }}">{{ __('Settings') }}</a></li>
+                                <li><a class="dropdown-item" href="{{ route('profile') }}">{{ __('Account Panel') }}</a></li>
+                                <li><a class="dropdown-item" href="{{ route('profile.edit') }}">{{ __('Account Settings') }}</a></li>
                                 <li><a class="dropdown-item" href="{{ route('profile.donate') }}">{{ __('Donate') }}</a></li>
                                 @if(auth()->user()->role?->is_admin)
                                     <li><hr class="dropdown-divider"></li>

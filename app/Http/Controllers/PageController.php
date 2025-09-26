@@ -24,6 +24,12 @@ class PageController extends Controller
         return view('pages.index', compact('data'));
     }
 
+    public function news()
+    {
+        $data = News::getPosts();
+        return view('pages.news', compact('data'));
+    }
+
     public function locale($locale)
     {
         if (array_key_exists($locale, config('global.languages'))) {

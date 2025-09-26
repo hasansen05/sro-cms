@@ -218,9 +218,9 @@
             </div>
 
             <div class="text-center mt-5">
-                <button class="btn btn-outline-warning font-cinzel">
+                <a href="{{ route('news') }}" class="btn btn-outline-warning font-cinzel">
                     View All News
-                </button>
+                </a>
             </div>
         </div>
     </section>
