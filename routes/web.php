@@ -25,7 +25,7 @@ Route::get('/job-kills', [PageController::class, 'job_kills'])->name('pages.job-
 
 Route::any('/callback/{method}', [DonateController::class, 'callback'])->name('callback');
 Route::any('/webhook/{method}', [DonateController::class, 'webhook'])->name('webhook');
-Route::any('/postback', [VoteController::class, 'postback'])->name('postback');
+Route::any('/postback/{site}', [VoteController::class, 'postback'])->name('postback');
 
 require __DIR__.'/ranking.php';
 require __DIR__.'/profile.php';
