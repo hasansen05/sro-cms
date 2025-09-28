@@ -22,7 +22,7 @@
                                                 <p class="mb-0">{{ $value->desc }}</p>
                                             </div>
                                         </div>
-                                        <button class="btn btn-warning btn-lg">{{ __('Download') }}</button>
+                                        <button class="btn btn-primary btn-lg">{{ __('Download') }}</button>
                                     </div>
                                 </div>
                             </a>
