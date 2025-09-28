@@ -4,6 +4,8 @@
 @section('content')
     <div class="container">
         <div class="row">
+            <h2 class="my-4">{{ __('Download Client') }}</h2>
+
             @forelse($data as $value)
                 <div class="col-md-3 mb-4">
                     <div class="card">
@@ -27,15 +29,14 @@
             @endforelse
         </div>
 
-        <div class="row">
-            <div class="card mt-5 p-0">
-                <div class="card-header">
-                    <h4>{{ __('System Requirements') }}</h4>
-                </div>
-                <div class="card-body">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <h2 class="my-4">{{ __('System Requirements') }}</h2>
+
                     <div class="table-responsive">
-                        <table class="table">
-                            <thead>
+                        <table class="table table-bordered mb-0">
+                            <thead class="table-dark">
                             <tr>
                                 <th scope="col">{{ __('Category') }}</th>
                                 <th scope="col">{{ __('Minimum Requirements') }}</th>

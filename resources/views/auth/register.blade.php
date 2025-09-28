@@ -5,6 +5,8 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6">
+                <h1 class="my-5">{{ __('Register') }}</h1>
+
                 @if (!config('settings.disable_register'))
                     <form method="POST" action="{{ route('register') }}">
                     @csrf
@@ -82,7 +84,7 @@
                             <input class="form-check-input @error('terms') is-invalid @enderror" type="checkbox" name="terms" id="terms" {{ old('terms') ? 'checked' : '' }}>
 
                             <label class="form-check-label" for="terms">
-                                I agree to the <a href="#" target="_blank">terms and conditions</a>
+                                I agree to the <a href="{{ route('pages.page.show', ['slug' => 'terms']) }}" target="_blank">terms and conditions</a>
                             </label>
 
                             @error('terms')

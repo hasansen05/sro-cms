@@ -36,7 +36,7 @@
                     </ul>
                 </li>
                 <li class="dropdown">
-                    <a href="#" class="nav-link px-2 text-white dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">{{ __('Pages') }}</a>
+                    <a href="#" class="nav-link px-2 text-white dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">{{ __('Server Information') }}</a>
                     <ul class="dropdown-menu" style="">
                         @forelse ($pages as $page)
                             <li><a class="dropdown-item" href="{{ route('pages.page.show', ['slug' => $page->slug]) }}">{{ $page->title }}</a></li>
@@ -138,9 +138,9 @@
                             </ul>
                         </div>
                     @else
-                        <a href="{{ route('login') }}" class="btn btn-outline-light me-2">{{ __('Log in') }}</a>
+                        <a href="{{ route('login') }}" class="btn btn-outline-light me-3">{{ __('Log in') }}</a>
                         @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="btn btn-warning">{{ __('Register') }}</a>
+                            <a href="{{ route('register') }}" class="btn btn-warning">{{ __('Create Account') }}</a>
                         @endif
                     @endauth
                 @endif

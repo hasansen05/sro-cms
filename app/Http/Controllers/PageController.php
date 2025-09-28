@@ -51,6 +51,10 @@ class PageController extends Controller
     public function page($slug)
     {
         $data = Pages::getPage($slug);
+        if (!$data) {
+            return redirect()->back();
+        }
+
         return view('pages.page', compact('data'));
     }
 
