@@ -5,7 +5,7 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <h1 class="my-5">{{ __('Register') }}</h1>
+                <h2 class="mt-5">{{ __('Register') }}</h2>
 
                 @if (!config('settings.disable_register'))
                     <form method="POST" action="{{ route('register') }}">

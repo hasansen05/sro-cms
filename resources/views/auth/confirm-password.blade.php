@@ -5,7 +5,7 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <h1 class="my-5">{{ __('Confirm Password') }}</h1>
+                <h2 class="mt-5">{{ __('Confirm Password') }}</h2>
 
                 <div class="mb-3">
                     {{ __('This is a secure area of the application. Please confirm your password before continuing.') }}

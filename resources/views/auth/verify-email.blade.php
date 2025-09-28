@@ -5,7 +5,7 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <h1 class="my-5">{{ __('Verify Email') }}</h1>
+                <h2 class="mt-5">{{ __('Verify Email') }}</h2>
 
                 @if (session('status') == 'verification-link-sent')
                     <div class="alert alert-success" role="alert">
