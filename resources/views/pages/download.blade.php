@@ -3,37 +3,40 @@
 
 @section('content')
     <div class="container">
-        <div class="row">
-            <h2 class="my-4">{{ __('Download Client') }}</h2>
-
-            @forelse($data as $value)
-                <div class="col-md-3 mb-4">
-                    <div class="card">
-                        @if ($value->image)
-                            <img src="{{ $value->image }}" class="card-img-top object-fit-contain p-3" width="" height="100" alt="...">
-                        @endif
-                        <div class="card-body text-center">
-                            <h5 class="card-title">{{ $value->name }}</h5>
-                            <p class="card-text">{{ $value->desc }}</p>
-
-                            <div class="d-grid mx-auto">
-                                <a href="{{ $value->url }}" target="_blank" class="btn btn-primary">{{ __('Download') }}</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="alert alert-danger text-center" role="alert">
-                    {{ __('No Downloads Available!') }}
-                </div>
-            @endforelse
-        </div>
-
         <div class="card">
             <div class="card-body">
-                <div class="row">
-                    <h2 class="my-4">{{ __('System Requirements') }}</h2>
+                <h2 class="mb-4">{{ __('Downloads') }}</h2>
 
+                <div class="row">
+                    @forelse($data as $value)
+                        <div class="col-lg-6 col-sm-12">
+                            <a href="{{ $value->url }}" target="_blank" class="text-decoration-none">
+                                <div class="card mb-3">
+                                    <div class="card-body p-4 d-flex flex-row align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            @if ($value->image)
+                                                <img class="d-block mx-auto me-2" src="{{ $value->image }}" alt="" width="60">
+                                            @endif
+                                            <div>
+                                                <h4 class="mb-0">{{ $value->name }}</h4>
+                                                <p class="mb-0">{{ $value->desc }}</p>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-warning btn-lg">{{ __('Download') }}</button>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    @empty
+                        <div class="alert alert-danger text-center" role="alert">
+                            {{ __('No Downloads Available!') }}
+                        </div>
+                    @endforelse
+                </div>
+
+                <h2 class="mb-4 mt-5">{{ __('System Requirements') }}</h2>
+
+                <div class="row">
                     <div class="table-responsive">
                         <table class="table table-bordered mb-0">
                             <thead class="table-dark">

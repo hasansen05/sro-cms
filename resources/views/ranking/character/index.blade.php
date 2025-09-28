@@ -3,8 +3,8 @@
 
 @section('content')
     <div class="container">
-        <div class="card mb-4">
-            <div class="card-header">
+        <div class="card">
+            <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="d-flex">
@@ -12,7 +12,7 @@
                                 <img class="object-fit-cover rounded border" src="{{ asset($characterImage[$data->RefObjID]) }}" width="100" height="100" alt=""/>
                             </div>
 
-                            <div class="mt-4">
+                            <div class="mt-3">
                                 <h2>{{ $data->CharName16 }}</h2>
                                 <p class="m-0">{{ __('Item Points:') }} <span class="">{{ $data->ItemPoints }}</span></p>
 
@@ -29,7 +29,7 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="row mt-5 justify-content-end">
+                        <div class="row mt-3 justify-content-end">
                             @if($data->JobType > 0)
                                 <div class="col-md-4">
                                     <div class="d-flex">
@@ -61,8 +61,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="card-body">
+
                 <div class="row">
                     <div class="col-md-6">
                         <ul class="nav nav-tabs" id="myTab" role="tablist">

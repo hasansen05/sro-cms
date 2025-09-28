@@ -5,7 +5,7 @@
     <div class="container">
         <div class="card">
             <div class="card-body">
-                <div class="d-block text-center mb-4">
+                <div class="d-block text-center my-4">
                     @foreach($config as $value)
                         @if($value['enabled'])
                             <button class="btn btn-primary me-1 mb-2 {{ $value['route'] === 'ranking.player' ? 'active' : '' }}" data-link="{{ is_array($value['route'])? route($value['route']['name'], $value['route']['params'] ?? []): route($value['route']) }}">{{ __($value['name']) }}</button>
