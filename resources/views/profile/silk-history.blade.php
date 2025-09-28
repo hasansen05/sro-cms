@@ -25,19 +25,29 @@
                         @forelse($data as $value)
                             <tr>
                                 <td>
-                                    @if($value->PTInvoiceID)
-                                        <img src="{{ asset('images/webmall/' . $value->CPItemCode . '.jpg') }}" alt="" width="32" height="32" class="">
-                                        {{ $value->CPItemName }}
-                                    @elseif($value->ChangedSilk == 0 && $value->RemainedSilk > 0)
-                                        <span class="text-success">{{ __('Add Silk') }}</span>
+                                    @if(config('global.server.version') === 'vSRO')
+                                        <span class="">{{ $value->OrderNumber }}</span>
                                     @else
-                                        <span class="">{{ __('NoName') }}</span>
+                                        @if($value->PTInvoiceID)
+                                            <img src="{{ asset('images/webmall/' . $value->CPItemCode . '.jpg') }}" alt="" width="32" height="32" class="">
+                                            {{ $value->CPItemName }}
+                                        @elseif($value->ChangedSilk == 0 && $value->RemainedSilk > 0)
+                                            <span class="text-success">{{ __('Add Silk') }}</span>
+                                        @else
+                                            <span class="">{{ __('NoName') }}</span>
+                                        @endif
                                     @endif
                                 </td>
-                                <td style="color: orange">{{ $value->RemainedSilk }}</td>
-                                <td style="color: orangered">{{ $value->ChangedSilk }}</td>
+                                <td style="color: orange">{{ $value->RemainedSilk ?? $value->Silk_Offset }}</td>
+                                <td style="color: orangered">{{ $value->ChangedSilk ?? $value->Silk_Remain }}</td>
                                 <td>{{ ($value->SilkType == 3) ? __('Premium') : __('Normal') }}</td>
-                                <td>{{ \Carbon\Carbon::make($value->ChangeDate)->diffForHumans() }}</td>
+                                <td>
+                                    @if(config('global.server.version') === 'vSRO')
+                                        {{ \Carbon\Carbon::make($value->RegDate)->diffForHumans() }}
+                                    @else
+                                        {{ \Carbon\Carbon::make($value->ChangeDate)->diffForHumans() }}
+                                    @endif
+                                </td>
                                 <td>{{ ($value->AvailableStatus == 'Y') ? __('Available') : __('Not Available') }}</td>
                             </tr>
                         @empty

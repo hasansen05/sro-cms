@@ -3,6 +3,8 @@
 namespace App\Models\SRO\Account;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 
 class SkSilkBuyList extends Model
 {
@@ -76,4 +78,36 @@ class SkSilkBuyList extends Model
      * Reason 3 is for Web
      */
     public const SILKREASONWEB = 3;
+
+
+    public static function getSilkHistory($jid, $paginate = 10, $page = 1): LengthAwarePaginator
+    {
+        $minutes = config('global.cache.account_info', 5);
+
+        $data = Cache::remember("account_info_vsro_donate_history_{$jid}_{$paginate}_{$page}", now()->addMinutes($minutes), function () use ($paginate, $page, $jid) {
+            return self::select(
+                'SK_SilkBuyList.BuyNo',
+                'SK_SilkBuyList.OrderNumber',
+                'SK_SilkBuyList.Silk_Offset',
+                'SK_SilkBuyList.Silk_Remain',
+                'SK_SilkBuyList.Silk_Type',
+                'SK_SilkBuyList.RegDate'
+            )
+                ->where('SK_SilkBuyList.UserJID', $jid)
+                ->orderBy('SK_SilkBuyList.RegDate', 'desc')
+                ->get();
+        });
+
+        return new LengthAwarePaginator(
+            $data->forPage($page, $paginate)->values(),
+            $data->count(),
+            $paginate,
+            $page,
+            [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ]
+        );
+    }
+
 }

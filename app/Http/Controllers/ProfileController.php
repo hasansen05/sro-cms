@@ -7,6 +7,7 @@ use App\Models\DonateLog;
 use App\Models\Referral;
 use App\Models\Setting;
 use App\Models\SRO\Account\SkSilk;
+use App\Models\SRO\Account\SkSilkBuyList;
 use App\Models\SRO\Account\TbUser;
 use App\Models\SRO\Portal\AphChangedSilk;
 use App\Models\SRO\Portal\MuEmail;
@@ -161,7 +162,11 @@ class ProfileController extends Controller
     public function silkHistory(Request $request): View
     {
         $page = $request->get('page', 1);
-        $data = AphChangedSilk::getSilkHistory($request->user()->jid, 25, $page);
+        if (config('global.server.version') === 'vSRO') {
+            $data = SkSilkBuyList::getSilkHistory($request->user()->jid, 25, $page);
+        }else {
+            $data = AphChangedSilk::getSilkHistory($request->user()->jid, 25, $page);
+        }
 
         return view('profile.silk-history', [
             'user' => $request->user(),

@@ -7,7 +7,7 @@
                 @if(config('global.server.version') === 'vSRO')
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <strong>{{ __('Silk') }}</strong>
-                        <span class="badge">{{ number_format(Auth::user()->tbUser->getSkSilk->silk_own ?? 0) }}</span>
+                        <span class="">{{ number_format(Auth::user()->tbUser->getSkSilk->silk_own ?? 0) }}</span>
                     </li>
                 @else
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -34,23 +34,16 @@
             </ul>
 
             <div class="d-grid gap-2">
+                <a href="{{ route('profile') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile') ? 'active' : '' }}">{{ __('Account Panel') }}</a>
+                <a href="{{ route('profile.edit') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile.edit') ? 'active' : '' }}">{{ __('Account Settings') }}</a>
                 <a href="{{ route('profile.donate') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile.donate') ? 'active' : '' }}">{{ __('Donate') }}</a>
-                @if(config('global.server.version') !== 'vSRO')
-                    <a href="{{ route('profile.silk-history') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile.silk-history') ? 'active' : '' }}">{{ __('Silk History') }}</a>
-                @endif
-                @if(config('global.referral.enabled', true))
-                    <a href="{{ route('profile.referral') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile.referral') ? 'active' : '' }}">{{ __('Referral') }}</a>
-                @endif
+                <a href="{{ route('profile.silk-history') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile.silk-history') ? 'active' : '' }}">{{ __('Silk History') }}</a>
                 <a href="{{ route('profile.voucher') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile.voucher') ? 'active' : '' }}">{{ __('Voucher') }}</a>
                 <a href="{{ route('profile.vote') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile.vote') ? 'active' : '' }}">{{ __('Vote4Silk') }}</a>
 
-                <a href="{{ route('profile') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile') ? 'active' : '' }}">{{ __('Account Panel') }}</a>
-                <a href="{{ route('profile.edit') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile.edit') ? 'active' : '' }}">{{ __('Account Settings') }}</a>
-
-                {{--
-                <a href="{{ route('logout') }}" class="btn btn-outline-danger" onclick="event.preventDefault();$('#logout-form').submit();">{{ __('Log Out') }}</a>
-                <form id="logout-form" method="POST" action="{{ route('logout') }}"> @csrf </form>
-                --}}
+                @if(config('global.referral.enabled', true))
+                    <a href="{{ route('profile.referral') }}" class="btn btn-outline-secondary {{ request()->routeIs('profile.referral') ? 'active' : '' }}">{{ __('Referral') }}</a>
+                @endif
             </div>
         </div>
     </div>
