@@ -7,8 +7,8 @@
 
 @section('content')
     <div class="container">
-        <div class="card p-3">
-            <div class="card-body">
+        <div class="card border-0">
+            <div class="card-body p-0">
                 @if ($invite)
                     @if (session('success'))
                         <div class="alert alert-success">{{ session('success') }}</div>
@@ -58,34 +58,36 @@
                     <div class="mt-5">
                         <h5>Invited Users ({{ $usedInvites->count() }})</h5>
                         @if ($usedInvites->isNotEmpty())
-                            <table class="table table-bordered table-striped">
-                                <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Username</th>
-                                    <th>Registered At</th>
-                                    <th>Points</th>
-                                    <th>Status</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach ($usedInvites as $index => $inviteLog)
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead class="table-dark">
                                     <tr>
-                                        <td>{{ $index + 1 }}</td>
-                                        <td>{{ $inviteLog->invitedUser->username ?? 'Unknown' }}</td>
-                                        <td>{{ $inviteLog->invitedUser->created_at->format('Y-m-d H:i') ?? 'N/A' }}</td>
-                                        <td>{{ $inviteLog->points }}</td>
-                                        <td>
-                                            @if($inviteLog->ip == 'CHEATING')
-                                                <span class="text-danger">Cheating</span>
-                                            @else
-                                                <span class="text-success">Success<span>
-                                            @endif
-                                        </td>
+                                        <th>#</th>
+                                        <th>Username</th>
+                                        <th>Registered At</th>
+                                        <th>Points</th>
+                                        <th>Status</th>
                                     </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                    @foreach ($usedInvites as $index => $inviteLog)
+                                        <tr>
+                                            <td>{{ $index + 1 }}</td>
+                                            <td>{{ $inviteLog->invitedUser->username ?? 'Unknown' }}</td>
+                                            <td>{{ $inviteLog->invitedUser->created_at->format('Y-m-d H:i') ?? 'N/A' }}</td>
+                                            <td>{{ $inviteLog->points }}</td>
+                                            <td>
+                                                @if($inviteLog->ip == 'CHEATING')
+                                                    <span class="text-danger">Cheating</span>
+                                                @else
+                                                    <span class="text-success">Success<span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         @else
                             <div class="alert alert-info">No invited users yet.</div>
                         @endif

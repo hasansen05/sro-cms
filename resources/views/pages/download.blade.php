@@ -3,8 +3,8 @@
 
 @section('content')
     <div class="container">
-        <div class="card">
-            <div class="card-body">
+        <div class="card border-0">
+            <div class="card-body p-0">
                 <h2 class="mb-4">{{ __('Downloads') }}</h2>
 
                 <div class="row">

@@ -3,8 +3,8 @@
 
 @section('content')
     <div class="container">
-        <div class="card-unique">
-            <div class="card-body-unique">
+        <div class="card border-0">
+            <div class="card-body p-0">
                 <div class="row">
                     @foreach($data as $key => $value)
                         <div class="col-md-4">

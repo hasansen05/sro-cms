@@ -3,8 +3,8 @@
 
 @section('content')
     <div class="container">
-        <div class="card">
-            <div class="card-body">
+        <div class="card border-0">
+            <div class="card-body p-0">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="d-flex">

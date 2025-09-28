@@ -38,8 +38,8 @@
         </div>
 
         <h3 class="mt-4">{{ __('Information') }}</h3>
-        <div class="card">
-            <div class="card-body">
+        <div class="card border-0">
+            <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-striped">
                         @if(config('global.server.version') === 'vSRO')

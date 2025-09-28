@@ -4,8 +4,8 @@
 @section('content')
     <div class="container">
         <div class="row">
-            <div class="card mb-4 p-0">
-                <div class="card-body">
+            <div class="card border-0">
+                <div class="card-body p-0">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="d-flex">

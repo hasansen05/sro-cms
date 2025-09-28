@@ -3,8 +3,8 @@
 
 @section('content')
     <div class="container">
-        <div class="card">
-            <div class="card-body">
+        <div class="card border-0">
+            <div class="card-body p-0">
                 <nav class="mb-4">
                     <div class="nav nav-tabs" id="nav-tab" role="tablist">
                         <button class="nav-link active" id="nav-all-news-tab" data-bs-toggle="tab" data-bs-target="#nav-all-news" type="button" role="tab" aria-controls="nav-all-news" aria-selected="true">All News</button>
