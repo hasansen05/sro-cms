@@ -28,11 +28,28 @@ class AdminController extends Controller
             $totalSilk = AphChangedSilk::getSilkSum();
         }
 
+        $phpVersion = phpversion();
+        $memoryLimit = ini_get('memory_limit');
+        $memoryUsage = memory_get_usage(true);
+        $memoryPeak = memory_get_peak_usage(true);
+        $diskTotal = disk_total_space('/');
+        $diskFree = disk_free_space('/');
+        $appDebug = config('app.debug') ? 'true' : 'false';
+        $adminCount = \App\Models\User::whereHas('role', function ($q) {$q->where('is_admin', 1);})->count();
+
         return view('admin.index', [
             'userCount' => $userCount,
             'charCount' => $charCount,
             'totalGold' => $totalGold,
             'totalSilk' => $totalSilk,
+            'phpVersion' => $phpVersion,
+            'memoryLimit' => $memoryLimit,
+            'memoryUsage' => $memoryUsage,
+            'memoryPeak' => $memoryPeak,
+            'diskTotal' => $diskTotal,
+            'diskFree' => $diskFree,
+            'appDebug' => $appDebug,
+            'adminCount' => $adminCount,
         ]);
     }
 
