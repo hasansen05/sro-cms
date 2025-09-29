@@ -56,6 +56,7 @@ class SkSilk extends Model
             '2' => 'silk_point'
         ];
 
+        /*
         if ((int)$type === 0) {
             $username = TbUser::where('JID', $jid)->value('StrUserID');
             if (!$username) {
@@ -64,6 +65,7 @@ class SkSilk extends Model
 
             return self::setSkSilkLive($username, $amount);
         }
+        */
 
         self::firstOrCreate(
             ['JID' => $jid],
