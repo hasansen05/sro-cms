@@ -694,7 +694,7 @@ class DonateService
             }
         }
 
-        $errorMsg = isset($response['message']) ? 'Payment failed.' : 'An error occurred';
+        $errorMsg = $response['message'] ?? $responseData['message'];
         return back()->withErrors(['hipocard' => $errorMsg])->withInput();
     }
 
