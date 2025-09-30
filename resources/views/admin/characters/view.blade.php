@@ -141,6 +141,7 @@
                     </div>
                 </div>
 
+                @if(config("ranking.extra.character_status"))
                 <div class="card p-0 mt-4">
                     <div class="card-header">
                         <h4 class="text-center">Logged in history</h4>
@@ -176,6 +177,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
 
             <div class="col-md-4">

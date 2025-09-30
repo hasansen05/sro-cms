@@ -31,7 +31,6 @@ class CharactersController extends Controller
 
     public function view(Char $char, InventoryService $inventoryService)
     {
-        $status = LogEventChar::getCharStatus($char->CharID)->take(5);
         $inventoryAll = $inventoryService->getInventorySet($char->CharID, 108, 13, 0);
         $storageItems = $inventoryService->getStorageItems($char->user->UserJID, 180, 0);
         $petNames = InvCOS::getPetNames($char->CharID);
@@ -40,10 +39,13 @@ class CharactersController extends Controller
         if ($PetID) {
             $petItems = $inventoryService->getPetItems($char->CharID, $PetID, 196, 0);
         }
+        if (config("ranking.extra.character_status")) {
+            $status = LogEventChar::getCharStatus($char->CharID)->take(5);
+        }
 
         return view('admin.characters.view', [
             'data' => $char,
-            'status' => $status,
+            'status' => $status ?? null,
             'inventorySet' => $inventoryAll,
             'storageItems' => $storageItems,
             'petNames' => $petNames,
