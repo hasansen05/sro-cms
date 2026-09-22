@@ -82,7 +82,7 @@ var BattlePassAPI = {
                         data = eval('(' + xhr.responseText + ')');
                     }
                 } catch (e) {
-                    data = { success: false, error: 'Parse error: ' + e.message };
+                    data = { success: false, error: 'Server returned an invalid response (HTTP ' + xhr.status + '). Check storage/database tables and migrations.' };
                 }
                 if (xhr.status === 200) {
                     callback(data);

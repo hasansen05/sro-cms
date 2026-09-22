@@ -78,6 +78,7 @@ class SettingController extends Controller
 
         return view('admin.settings.webapps', [
             'battlepass' => $this->mergeJsonSetting($data, 'battlepass', config('ingame.battlepass', [])),
+            'ranking' => $this->mergeJsonSetting($data, 'ingame_ranking', config('ingame.ranking', [])),
         ]);
     }
 
@@ -154,6 +155,7 @@ class SettingController extends Controller
         $history = $this->getJsonSetting('history', config('global.logs', []));
         $server = $this->getJsonSetting('server', config('global.server', []));
         $battlepass = $this->getJsonSetting('battlepass', config('ingame.battlepass', []));
+        $ingameRanking = $this->getJsonSetting('ingame_ranking', config('ingame.ranking', []));
 
         $toSave = [];
 
@@ -215,6 +217,15 @@ class SettingController extends Controller
                 continue;
             }
 
+            if ($key === 'ingame_ranking') {
+                $decoded = is_array($value) ? $value : json_decode((string) $value, true);
+                if (is_array($decoded) && array_key_exists('custom', $decoded)) {
+                    $ingameRanking['custom'] = $decoded['custom'];
+                }
+
+                continue;
+            }
+
             // Scalar fields (General tab direct name= attributes) and other JSON blobs
             $toSave[$key] = is_array($value) ? json_encode($value) : $value;
         }
@@ -224,10 +235,16 @@ class SettingController extends Controller
         $toSave['history'] = json_encode($history);
         $toSave['server'] = json_encode($server);
         $toSave['battlepass'] = json_encode($battlepass);
+        $toSave['ingame_ranking'] = json_encode($ingameRanking);
 
         Setting::saveMany($toSave);
         Setting::flushCache();
         Cache::forget('battle_pass_tiers');
+
+        // Drop previously cached in-game ranking results so edits apply immediately.
+        foreach (array_keys($ingameRanking['custom'] ?? []) as $rankingKey) {
+            Cache::forget("ingame_ranking_{$rankingKey}");
+        }
 
         return back()->with('success', __('Settings updated successfully.'));
     }

@@ -20,17 +20,78 @@
 
         <ul class="nav nav-tabs mb-3" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-battlepass" type="button" role="tab">{{ __('Battle Pass') }}</button>
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-ranking" type="button" role="tab">{{ __('Ranking') }}</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-battlepass" type="button" role="tab">{{ __('Battle Pass') }}</button>
             </li>
         </ul>
 
-        <form method="POST" action="{{ route('admin.settings.update') }}" id="battlePassForm" onsubmit="serializeBattlePass()">
+        <form method="POST" action="{{ route('admin.settings.update') }}" id="battlePassForm" onsubmit="serializeBattlePass(); serializeInGameRanking()">
             @csrf
 
             <div class="tab-content">
 
+                {{-- ===================== RANKING ===================== --}}
+                <div class="tab-pane fade show active" id="tab-ranking" role="tabpanel">
+
+                    <div class="alert alert-info">
+                        <strong>{{ __('In-Game Ranking URL:') }}</strong>
+                        <code>{{ route('game.ranking') }}</code>
+                    </div>
+
+                    <div class="mb-4">
+                        <strong>{{ __('Web Interface Setup Guide') }}</strong>
+                        <ul>
+                            <li>MaxiGuard: <a href="https://docs.google.com/document/d/1ywAYnDzTpjn5SeCv8x0Sxtt_DnLTptOWoHy5gOnK4Cg/view#heading=h.4mspqsvgq5vi" target="_blank">https://docs.google.com/document/d/1ywAYnDzTpjn5SeCv8x0Sxtt_DnLTptOWoHy5gOnK4Cg/view#heading=h.4mspqsvgq5vi</a></li>
+                            <li>vPlus: <a href="https://vsroplus.com/helpcenter/features/webinterface" target="_blank">https://vsroplus.com/helpcenter/features/webinterface</a></li>
+                            <li>Vanguard: <a href="https://vanguard-r.online/wiki/article/63" target="_blank">https://vanguard-r.online/wiki/article/63</a></li>
+                            <li>iSRO: In media.pk2/type.txt set <code>WebMallAddr="yourdomain.com/gateway"</code></li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <p class="fw-semibold mb-1">{{ __('Custom Ranking Guide') }}</p>
+                        <p class="small mb-1">{{ __('Each enabled ranking becomes a tab inside the game client. The tab key is derived from its name.') }}</p>
+                        <p class="small mb-0">{{ __('Return') }} <code>RefObjID</code> {{ __('to show the race icon.') }}</p>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary btn-sm mb-3" onclick="addInGameRankCard()">{{ __('+ Add Ranking') }}</button>
+
+                    <div id="inGameRankingList">
+                        @foreach($ranking['custom'] ?? [] as $rk => $rankItem)
+                            <div class="card mb-3 ingame-ranking-item">
+                                <div class="card-header fw-semibold">{{ $rankItem['name'] ?? $rk }}</div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" data-ir="enabled"
+                                                {{ ! empty($rankItem['enabled']) ? 'checked' : '' }}>
+                                            <label class="form-check-label">{{ __('Enabled') }}</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">{{ __('Name') }}</label>
+                                        <input type="text" class="form-control" data-ir="name" value="{{ $rankItem['name'] ?? '' }}" placeholder="{{ __('Label shown on the tab') }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">{{ __('Query') }}</label>
+                                        <textarea class="form-control font-monospace" data-ir="query" rows="6">{{ $rankItem['query'] ?? '' }}</textarea>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-danger"
+                                            onclick="this.closest('.ingame-ranking-item').remove()">{{ __('Remove') }}</button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <input type="hidden" id="ingame_ranking" name="ingame_ranking">
+
+                    <button type="submit" class="btn btn-primary mt-3">{{ __('Save Settings') }}</button>
+                </div>
+
                 {{-- ===================== BATTLE PASS ===================== --}}
-                <div class="tab-pane fade show active" id="tab-battlepass" role="tabpanel">
+                <div class="tab-pane fade" id="tab-battlepass" role="tabpanel">
 
                     <div class="alert alert-info">
                         <strong>{{ __('Battle Pass URL:') }}</strong>
@@ -43,7 +104,7 @@
                             <li>MaxiGuard: <a href="https://docs.google.com/document/d/1ywAYnDzTpjn5SeCv8x0Sxtt_DnLTptOWoHy5gOnK4Cg/view#heading=h.4mspqsvgq5vi" target="_blank">https://docs.google.com/document/d/1ywAYnDzTpjn5SeCv8x0Sxtt_DnLTptOWoHy5gOnK4Cg/view#heading=h.4mspqsvgq5vi</a></li>
                             <li>vPlus: <a href="https://vsroplus.com/helpcenter/features/webinterface" target="_blank">https://vsroplus.com/helpcenter/features/webinterface</a></li>
                             <li>Vanguard: <a href="https://vanguard-r.online/wiki/article/63" target="_blank">https://vanguard-r.online/wiki/article/63</a></li>
-                            <li>iSRO: In media pk2 / type.txt set <code>WebMallAddr = "yourdomain.com/gateway.asp"</code></li>
+                            <li>iSRO: In media.pk2/type.txt set <code>WebMallAddr="yourdomain.com/gateway"</code></li>
                         </ul>
                     </div>
 
@@ -80,24 +141,24 @@
                         @php
                             $isVSRV = config('global.server.version') === 'vSRO';
                             $silkType = $battlepass['silk_type'] ?? null;
+                            $silkType = $silkType === '' || $silkType === null
+                                ? ($isVSRV ? '0' : '3')
+                                : (string) $silkType;
                         @endphp
                         <select class="form-select" data-bp="silk_type">
-                            <option value="" {{ $silkType === null || $silkType === '' ? 'selected' : '' }}>
-                                {{ __('Auto (default silk)') }}
-                            </option>
                             @if ($isVSRV)
-                                <option value="0" {{ (string) $silkType === '0' ? 'selected' : '' }}>{{ __('vSRO - silk_own (0)') }}</option>
-                                <option value="1" {{ (string) $silkType === '1' ? 'selected' : '' }}>{{ __('vSRO - silk_gift (1)') }}</option>
-                                <option value="2" {{ (string) $silkType === '2' ? 'selected' : '' }}>{{ __('vSRO - silk_point (2)') }}</option>
+                                <option value="0" {{ $silkType === '0' ? 'selected' : '' }}>{{ __('vSRO - silk_own (0)') }}</option>
+                                <option value="1" {{ $silkType === '1' ? 'selected' : '' }}>{{ __('vSRO - silk_gift (1)') }}</option>
+                                <option value="2" {{ $silkType === '2' ? 'selected' : '' }}>{{ __('vSRO - silk_point (2)') }}</option>
                             @else
-                                <option value="3" {{ (string) $silkType === '3' ? 'selected' : '' }}>{{ __('iSRO - PremiumSilk (3)') }}</option>
-                                <option value="1" {{ (string) $silkType === '1' ? 'selected' : '' }}>{{ __('iSRO - Silk (1)') }}</option>
+                                <option value="3" {{ $silkType === '3' ? 'selected' : '' }}>{{ __('iSRO - PremiumSilk (3)') }}</option>
+                                <option value="1" {{ $silkType === '1' ? 'selected' : '' }}>{{ __('iSRO - Silk (1)') }}</option>
                             @endif
                         </select>
                         <div class="form-text">
                             {{ $isVSRV
-                                ? __('Server: vSRO — 0 = silk_own, 1 = silk_gift, 2 = silk_point. Auto uses silk_own.')
-                                : __('Server: iSRO — 3 = PremiumSilk, 1 = Silk. Auto uses PremiumSilk.') }}
+                                ? __('Server: vSRO — 0 = silk_own, 1 = silk_gift, 2 = silk_point. Default is silk_own.')
+                                : __('Server: iSRO — 3 = PremiumSilk, 1 = Silk. Default is PremiumSilk.') }}
                         </div>
                     </div>
 
@@ -349,5 +410,54 @@
             });
         });
     });
+</script>
+
+<script>
+    // ─── In-Game Ranking ─────────────────────────────────────────────────────────────
+    function slugify(s) {
+        return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    function addInGameRankCard() {
+        const container = document.getElementById('inGameRankingList');
+        const card = document.createElement('div');
+        card.className = 'card mb-3 ingame-ranking-item';
+        card.innerHTML = `
+            <div class="card-header fw-semibold">{{ __('New Ranking') }}</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" data-ir="enabled">
+                        <label class="form-check-label">{{ __('Enabled') }}</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ __('Name') }}</label>
+                    <input type="text" class="form-control" data-ir="name" placeholder="{{ __('Label shown on the tab, e.g. Top Gold') }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ __('Query') }}</label>
+                    <textarea class="form-control font-monospace" data-ir="query" rows="6"></textarea>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.ingame-ranking-item').remove()">{{ __('Remove') }}</button>
+            </div>`;
+        container.appendChild(card);
+    }
+
+    function serializeInGameRanking() {
+        const custom = {};
+        document.querySelectorAll('.ingame-ranking-item').forEach(card => {
+            const name = card.querySelector('[data-ir="name"]')?.value.trim();
+            if (!name) return;
+            const key = slugify(name);
+            if (!key) return;
+            custom[key] = {
+                enabled: card.querySelector('[data-ir="enabled"]')?.checked ?? false,
+                name: name,
+                query: card.querySelector('[data-ir="query"]')?.value ?? '',
+            };
+        });
+        document.getElementById('ingame_ranking').value = JSON.stringify({ custom });
+    }
 </script>
 @endpush

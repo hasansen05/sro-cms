@@ -397,58 +397,32 @@ class Char extends Model
         return $this->belongsTo(Guild::class, 'GuildID', 'ID');
     }
 
-public function addItem(string $itemCode, int $quantity = 1, int $type = 1): int
+public function addItem(string $itemCode, int $quantity = 1, int $type = 1): string
     {
+        $errorMessages = [
+            1  => 'Success',
+            -1 => 'Unknown item',
+            -2 => 'Character does not exist',
+            -3 => 'Inventory is full',
+            -4 => 'Item ID is NULL',
+            -5 => 'Item reference link is NULL',
+            -6 => 'Not an item',
+            -7 => 'Failed for unknown reason',
+        ];
+
         try {
             $result = DB::connection($this->getConnectionName())->selectOne(
                 'DECLARE @return_code int; EXEC @return_code = _ADD_ITEM_EXTERN @charname = ?, @codename = ?, @data = ?, @opt_level = ?, @variance = NULL; SELECT @return_code AS return_code;',
                 [$this->CharName16, $itemCode, $quantity, $type]
             );
 
-            if (is_object($result) && property_exists($result, 'return_code')) {
-                return (int) $result->return_code;
-            }
+            $returnCode = (is_object($result) && property_exists($result, 'return_code'))
+                ? (int) $result->return_code
+                : -1;
 
-            return -1;
+            return $errorMessages[$returnCode] ?? 'Unknown error code: ' . $returnCode;
         } catch (\Exception $e) {
-            return -1;
-        }
-    }
-
-    private function addItemToChest(int $itemID, int $quantity, string $itemCode): void
-    {
-        try {
-            $jid = $this->JID;
-            if (!$jid) {
-                throw new \InvalidArgumentException('Character not found in _User');
-            }
-
-            $accountPdo = DB::connection('account')->getPdo();
-
-            $stmt1 = $accountPdo->prepare("INSERT INTO WEB_ITEM_GIVE_LIST VALUES (:jid, 64, :charid, 130, :itemcode, NULL, 'SN_' + :itemcodestr, 1, 0, 0, 0, 0, 0, 'Web', 0, GETDATE(), NULL, NULL, NULL)");
-            $stmt1->execute([
-                ':jid' => $jid,
-                ':charid' => $this->CharID,
-                ':itemcode' => $itemCode,
-                ':itemcodestr' => $itemCode,
-            ]);
-
-            $identity = (int) $accountPdo->lastInsertId();
-
-            $shardPdo = DB::connection('shard')->getPdo();
-            $stmt2 = $shardPdo->prepare("INSERT INTO _BuyCashItemList_By_Web VALUES (:id, :jid2, 1, 'SN_' + :itemcodestr2, :count, :itemid, :totalcount, GETDATE(), NULL, NULL, NULL, NULL, NULL, NULL)");
-            $stmt2->execute([
-                ':id' => $identity,
-                ':jid2' => $jid,
-                ':itemcodestr2' => $itemCode,
-                ':count' => $quantity,
-                ':itemid' => $itemID,
-                ':totalcount' => $quantity,
-            ]);
-        } catch (\InvalidArgumentException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            throw new \InvalidArgumentException($e->getMessage());
+            return $errorMessages[-7];
         }
     }
 
@@ -473,25 +447,15 @@ public function addItem(string $itemCode, int $quantity = 1, int $type = 1): int
                 break;
 
             case 'none':
-                $returnCode = $this->addItem($itemCode, $quantity);
-                $errorMessages = [
-                    1  => 'Success',
-                    -1 => 'Unknown item',
-                    -2 => 'Character does not exist',
-                    -3 => 'Inventory is full',
-                    -4 => 'Item ID is NULL',
-                    -5 => 'Item reference link is NULL',
-                    -6 => 'Not an item',
-                    -7 => 'Failed for unknown reason',
-                ];
-                if ($returnCode !== 1) {
-                    throw new \InvalidArgumentException($errorMessages[$returnCode] ?? 'Unknown error code: ' . $returnCode);
+                $result = $this->addItem($itemCode, $quantity);
+                if ($result !== 'Success') {
+                    throw new \InvalidArgumentException($result);
                 }
                 break;
 
             case 'isro':
             default:
-                $this->addItemToChest($itemID, $quantity, $itemCode);
+                BuyCashItemListByWeb::addItemToChest($this, $itemID, $quantity, $itemCode);
                 break;
         }
 
@@ -553,28 +517,7 @@ public function addItem(string $itemCode, int $quantity = 1, int $type = 1): int
 
             case 'isro':
             default:
-                $jid = $request->query('jid');
-                $key = $request->query('key');
-                if (empty($jid) || empty($key)) {
-                    return null;
-                }
-
-                $certifyKeyRecord = WebItemCertifyKey::getCertifyKey($jid);
-                if (!$certifyKeyRecord) {
-                    return null;
-                }
-
-                $generatedKey = strtoupper(md5($jid . $certifyKeyRecord->Certifykey . config('global.server.saltKey')));
-                if ($generatedKey !== strtoupper($key)) {
-                    return null;
-                }
-
-                return DB::connection('shard')
-                    ->table('_Char as c')
-                    ->join('_User as u', 'c.CharID', '=', 'u.CharID')
-                    ->where('u.UserJID', $jid)
-                    ->orderByDesc('c.LastLogout')
-                    ->value('c.CharName16');
+                return WebItemCertifyKey::resolveCharname($request);
         }
     }
 }

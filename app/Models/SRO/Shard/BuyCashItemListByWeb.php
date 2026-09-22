@@ -45,6 +45,43 @@ class BuyCashItemListByWeb extends Model
 
     ];
 
+    public static function addItemToChest(Char $char, int $itemID, int $quantity, string $itemCode): void
+    {
+        try {
+            $jid = $char->JID;
+            if (!$jid) {
+                throw new \InvalidArgumentException('Character not found in _User');
+            }
+
+            $accountPdo = DB::connection('account')->getPdo();
+
+            $stmt1 = $accountPdo->prepare("INSERT INTO WEB_ITEM_GIVE_LIST VALUES (:jid, 64, :charid, 130, :itemcode, NULL, 'SN_' + :itemcodestr, 1, 0, 0, 0, 0, 0, 'Web', 0, GETDATE(), NULL, NULL, NULL)");
+            $stmt1->execute([
+                ':jid' => $jid,
+                ':charid' => $char->CharID,
+                ':itemcode' => $itemCode,
+                ':itemcodestr' => $itemCode,
+            ]);
+
+            $identity = (int) $accountPdo->lastInsertId();
+
+            $shardPdo = DB::connection('shard')->getPdo();
+            $stmt2 = $shardPdo->prepare("INSERT INTO _BuyCashItemList_By_Web VALUES (:id, :jid2, 1, 'SN_' + :itemcodestr2, :count, :itemid, :totalcount, GETDATE(), NULL, NULL, NULL, NULL, NULL, NULL)");
+            $stmt2->execute([
+                ':id' => $identity,
+                ':jid2' => $jid,
+                ':itemcodestr2' => $itemCode,
+                ':count' => $quantity,
+                ':itemid' => $itemID,
+                ':totalcount' => $quantity,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw new \InvalidArgumentException($e->getMessage());
+        }
+    }
+
     public static function getWebChest($JID, $page = null)
     {
         $page ??= request()->get('page', 1);

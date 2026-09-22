@@ -61,10 +61,10 @@ class CharacterController extends Controller
         $quantity = $validated['quantity'] ?? 1;
         $result = $char->addItem($validated['code'], $quantity);
 
-        if ($result === 1) {
+        if ($result === 'Success') {
             return back()->with('success', "Item '{$validated['code']}' (x{$quantity}) has been added successfully.");
         }
 
-        return back()->with('error', "Failed to add item. In-game error code: {$result}.");
+        return back()->with('error', "Failed to add item: {$result}.");
     }
 }

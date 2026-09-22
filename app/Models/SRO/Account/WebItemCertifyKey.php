@@ -3,7 +3,9 @@
 namespace App\Models\SRO\Account;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class WebItemCertifyKey extends Model
 {
@@ -52,6 +54,33 @@ class WebItemCertifyKey extends Model
     public static function getCertifyKey($JID)
     {
         return self::where('UserJID', $JID)->orderByDesc('reg_date')->limit(1)->first();
+    }
+
+    public static function resolveCharname(Request $request): ?string
+    {
+        $jid = $request->query('jid');
+        $key = $request->query('key');
+
+        if (empty($jid) || empty($key)) {
+            return null;
+        }
+
+        $certifyKeyRecord = self::getCertifyKey($jid);
+        if (!$certifyKeyRecord) {
+            return null;
+        }
+
+        $generatedKey = strtoupper(md5($jid . $certifyKeyRecord->Certifykey . config('global.server.saltKey')));
+        if ($generatedKey !== strtoupper($key)) {
+            return null;
+        }
+
+        return DB::connection('shard')
+            ->table(DB::raw('_Char as c'))
+            ->join(DB::raw('_User as u'), 'c.CharID', '=', 'u.CharID')
+            ->where('u.UserJID', $jid)
+            ->orderByDesc('c.LastLogout')
+            ->value('c.CharName16');
     }
 
     public function tbUser()

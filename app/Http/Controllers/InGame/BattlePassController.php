@@ -20,7 +20,7 @@ class BattlePassController extends Controller
         try {
             $charname = Char::resolveCharname($request);
             if ($charname === null) {
-                throw new \InvalidArgumentException('Unable to resolve character name.');
+                throw new \InvalidArgumentException('Unable to resolve character name (guard: ' . strtolower(config('global.server.guard', 'isro')) . ').');
             }
 
             $char = Char::where('CharName16', $charname)->first();
@@ -74,8 +74,8 @@ class BattlePassController extends Controller
                 'pointsPerPurchase' => (int) config('ingame.battlepass.points_per_purchase'),
                 'silkPerPoint' => (int) config('ingame.battlepass.silk_per_point'),
             ]);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()], 422);
         }
     }
 
@@ -113,8 +113,8 @@ class BattlePassController extends Controller
                 'quantity' => ($claimType === 'vip') ? $tier['vipItem']['quantity'] : $tier['freeItem']['quantity'],
                 'deliveryMethod' => strtolower(config('global.server.guard')),
             ]);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()], 422);
         }
     }
 
@@ -130,8 +130,8 @@ class BattlePassController extends Controller
                 'premiumPrice' => (int) config('ingame.battlepass.premium_price'),
                 'remainingSilk' => $remainingSilk,
             ]);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()], 422);
         }
     }
 
@@ -149,8 +149,8 @@ class BattlePassController extends Controller
                 'silkSpent' => $qty * (int) config('ingame.battlepass.silk_per_point'),
                 'remainingSilk' => $remainingSilk,
             ]);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()], 422);
         }
     }
 
@@ -167,8 +167,8 @@ class BattlePassController extends Controller
                 'message' => $added ? 'Points added successfully!' : 'Failed to add points',
                 'pointsAdded' => $points,
             ]);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()], 422);
         }
     }
 
@@ -190,8 +190,8 @@ class BattlePassController extends Controller
                 'silk' => $silk,
                 'jid' => $jid,
             ]);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()], 422);
         }
     }
 
@@ -199,7 +199,7 @@ class BattlePassController extends Controller
     {
         $charname = Char::resolveCharname($request);
         if ($charname === null) {
-            throw new \InvalidArgumentException('Unable to resolve character name. Missing or invalid credentials.');
+            throw new \InvalidArgumentException('Unable to resolve character name (guard: ' . strtolower(config('global.server.guard', 'isro')) . ').');
         }
 
         $char = Char::where('CharName16', $charname)->first();

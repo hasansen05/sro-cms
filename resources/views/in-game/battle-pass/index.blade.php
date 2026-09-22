@@ -2,12 +2,13 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml" >
 <head>
+	@php $ver = filemtime(public_path('in-game/battle-pass/script.js')); @endphp
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<meta name="Keywords" content="silkroad, silkroadonline, joymax, onlinesilkroad, silkroad-online" />
 	<META http-equiv='Page-Enter' content='blendTrans(Duration=0.2)'>
 	<META http-equiv='Page-Exit' content='blendTrans(Duration=0.2)'>
-	<link rel="stylesheet" type="text/css" media="all" href="{{ asset('in-game/battle-pass/itemmall_game.css') }}" />
-	<link rel="stylesheet" type="text/css" media="all" href="{{ asset('in-game/battle-pass/style.css') }}" />
+	<link rel="stylesheet" type="text/css" media="all" href="{{ asset('in-game/battle-pass/itemmall_game.css') }}?v={{ $ver }}" />
+	<link rel="stylesheet" type="text/css" media="all" href="{{ asset('in-game/battle-pass/style.css') }}?v={{ $ver }}" />
 	<script type="text/javascript" src="{{ asset('in-game/battle-pass/library/config/jquery-1.4.2.min.js') }}"></script>
 	<script type="text/javascript" src="{{ asset('in-game/battle-pass/jquery.jcarousel.min.js') }}"></script>
 	<script type="text/javascript" src="{{ asset('in-game/battle-pass/jquery.pngFix.js') }}"></script>
@@ -18,7 +19,7 @@
 	<script type="text/javascript" src="{{ asset('in-game/battle-pass/jquery.scroll.js') }}"></script>
 
 	<!-- Battle Pass API Client -->
-	<script type="text/javascript" src="{{ asset('in-game/battle-pass/script.js') }}"></script>
+	<script type="text/javascript" src="{{ asset('in-game/battle-pass/script.js') }}?v={{ $ver }}"></script>
 
 	<title>Silkroad Online - Battle Pass</title>
 	<base target="_blank">

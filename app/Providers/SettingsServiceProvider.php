@@ -40,6 +40,7 @@ class SettingsServiceProvider extends ServiceProvider
             $this->applyJsonConfig($settings, 'cache', 'global.cache');
             $this->applyJsonConfig($settings, 'server', 'global.server');
             $this->applyBattlePassSettings($settings);
+            $this->applyInGameRankingSettings($settings);
         } catch (\Throwable) {
             // Database not ready (e.g. during migrations) — silently skip.
         }
@@ -60,7 +61,7 @@ class SettingsServiceProvider extends ServiceProvider
         // This catches dynamic keys like item_stats_jid_2, job_name_jid_2, verify_jid_2
         foreach ($settings as $key => $value) {
             // Skip known JSON blob keys — they're handled by applyJsonConfig
-            $jsonKeys = ['donate', 'widgets', 'ranking', 'history', 'referral', 'tickets', 'sliders', 'footer', 'mail', 'captcha', 'vote', 'cache', 'whatsapp', 'server', 'battlepass'];
+            $jsonKeys = ['donate', 'widgets', 'ranking', 'history', 'referral', 'tickets', 'sliders', 'footer', 'mail', 'captcha', 'vote', 'cache', 'whatsapp', 'server', 'battlepass', 'ingame_ranking'];
             if (in_array($key, $jsonKeys, true)) {
                 continue;
             }
@@ -278,6 +279,30 @@ class SettingsServiceProvider extends ServiceProvider
         }
 
         Config::set('ingame.battlepass', $merged);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | In-Game Ranking (special handling — custom query list must not merge)
+    |-------------------------------------------------------------------------- */
+
+    private function applyInGameRankingSettings(array $settings): void
+    {
+        $decoded = $this->decodeJson($settings['ingame_ranking'] ?? null);
+        if (empty($decoded)) {
+            return;
+        }
+
+        $defaults = config('ingame.ranking', []);
+        $merged = array_replace_recursive($defaults, $decoded);
+
+        // The custom list is explicit — once saved (even empty / partially edited)
+        // it overrides config defaults so removed rankings stay removed.
+        if (array_key_exists('custom', $decoded)) {
+            $merged['custom'] = $decoded['custom'];
+        }
+
+        Config::set('ingame.ranking', $merged);
     }
 
     /*
