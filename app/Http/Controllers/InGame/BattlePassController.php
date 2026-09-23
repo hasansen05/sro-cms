@@ -17,6 +17,14 @@ class BattlePassController extends Controller
 
     public function tiers(Request $request)
     {
+        if (! (bool) config('ingame.battlepass.enabled', true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Battle Pass is currently disabled.',
+                'error' => 'Battle Pass is currently disabled.',
+            ], 403);
+        }
+
         try {
             $charname = Char::resolveCharname($request);
             if ($charname === null) {
@@ -95,6 +103,14 @@ class BattlePassController extends Controller
 
     public function claim(Request $request)
     {
+        if (! (bool) config('ingame.battlepass.enabled', true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Battle Pass is currently disabled.',
+                'error' => 'Battle Pass is currently disabled.',
+            ], 403);
+        }
+
         try {
             $tierID = (int) $request->input('tier_id', 0);
             $claimType = $request->input('type', 'free');
@@ -134,6 +150,14 @@ class BattlePassController extends Controller
 
     public function purchasePremium(Request $request)
     {
+        if (! (bool) config('ingame.battlepass.enabled', true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Battle Pass is currently disabled.',
+                'error' => 'Battle Pass is currently disabled.',
+            ], 403);
+        }
+
         try {
             $charID = $this->resolveCharID($request);
             $remainingSilk = BattlePass::purchasePremium($charID);
@@ -151,6 +175,14 @@ class BattlePassController extends Controller
 
     public function purchasePoints(Request $request)
     {
+        if (! (bool) config('ingame.battlepass.enabled', true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Battle Pass is currently disabled.',
+                'error' => 'Battle Pass is currently disabled.',
+            ], 403);
+        }
+
         try {
             $qty = (int) $request->input('qty', 1);
             $charID = $this->resolveCharID($request);
@@ -170,6 +202,14 @@ class BattlePassController extends Controller
 
     public function addPoints(Request $request)
     {
+        if (! (bool) config('ingame.battlepass.enabled', true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Battle Pass is currently disabled.',
+                'error' => 'Battle Pass is currently disabled.',
+            ], 403);
+        }
+
         try {
             $points = (int) $request->input('points', 0);
             $charID = $this->resolveCharID($request);
@@ -188,6 +228,14 @@ class BattlePassController extends Controller
 
     public function getSilk(Request $request)
     {
+        if (! (bool) config('ingame.battlepass.enabled', true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Battle Pass is currently disabled.',
+                'error' => 'Battle Pass is currently disabled.',
+            ], 403);
+        }
+
         try {
             $charID = $this->resolveCharID($request);
             $jid = Char::find($charID)?->JID;

@@ -111,6 +111,15 @@
                     <h5 class="fw-semibold mb-3">{{ __('Battle Pass Settings') }}</h5>
 
                     <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="bp_enabled" data-bp="enabled"
+                                   {!! ($battlepass['enabled'] ?? true) == true ? 'checked' : '' !!}>
+                            <label class="form-check-label fw-semibold" for="bp_enabled">{{ __('Battle Pass Enabled') }}</label>
+                            <div class="form-text">{{ __('When disabled, the in-game battle pass page and its API show an error and all routes are blocked.') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">{{ __('Premium Pass Enabled') }}</label>
                         <select class="form-select" data-bp="premium_enabled">
                             <option value="true"  {{ ($battlepass['premium_enabled'] ?? true) == true ? 'selected' : '' }}>{{ __('Yes') }}</option>
@@ -357,6 +366,7 @@
         var bp = {};
         document.querySelectorAll('#battlePassForm [data-bp]').forEach(function (el) {
             var key = el.dataset.bp;
+            if (el.type === 'checkbox') { bp[key] = !!el.checked; return; }
             if (key === 'premium_enabled') { bp[key] = el.value === 'true'; return; }
             if (el.type === 'number') { bp[key] = el.value === '' ? 0 : parseInt(el.value, 10) || 0; return; }
             bp[key] = el.value;

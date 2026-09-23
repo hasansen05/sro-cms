@@ -154,6 +154,8 @@ return [
     |--------------------------------------------------------------------------
     */
     'battlepass' => [
+        // Master toggle — when disabled all battle pass routes are blocked
+        'enabled' => false,
         // Premium Pass configuration (editable from Admin Panel later)
         'premium_enabled' => false,
         'premium_price' => 500,
