@@ -118,9 +118,12 @@ class SettingController extends Controller
                 ->all();
         }
 
+        $ids = array_map(fn ($row) => (int) $row->ID, $rows);
+        $itemsInfo = $inventoryService->getItemInfoByRefItem($ids);
+
         $items = [];
         foreach ($rows as $row) {
-            $infoItem = $inventoryService->getItemInfoByRefItem((int) $row->ID);
+            $infoItem = $itemsInfo[(int) $row->ID] ?? null;
 
             $items[] = [
                 'id' => (int) $row->ID,

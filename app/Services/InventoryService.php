@@ -9,7 +9,6 @@ use App\Models\SRO\Shard\Inventory;
 use App\Models\SRO\Shard\InventoryForAvatar;
 use App\Models\SRO\Shard\RefObjCommon;
 use App\Models\SRO\Shard\TradeEquipInventory;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class InventoryService
@@ -62,27 +61,30 @@ class InventoryService
     }
 
     /**
-     * Build a tooltip-ready item object from a _RefObjCommon ID.
+     * Build tooltip-ready item objects for one or more _RefObjCommon IDs
+     * with only 2 queries (joined _RefObjCommon/_RefObjItem + item names).
+     *
+     * @param  array<int>  $ids
+     * @param  array<int, array>  $instances  optional map of refItemID => instance data
+     * @return array<int, object>
      */
-    public function getItemInfoByRefItem(int $refItemID, array $instance = []): ?object
+    public function getItemInfoByRefItem(array $ids, array $instances = []): array
     {
-        $refItem = RefObjCommon::where('ID', $refItemID)->first();
-        if (!$refItem) {
-            return null;
-        }
+        $items = RefObjCommon::joinItemData($ids)->get()->keyBy('ID');
 
-        $item = $refItem->newFromBuilder($refItem->getAttributes());
+        $this->itemNames = ItemNameDesc::getItemNames(
+            $items->pluck('NameStrID128')->filter()->values()->all(),
+        );
 
-        $refItemData = DB::connection('shard')
-            ->table('_RefObjItem')
-            ->where('ID', $refItem->Link)
-            ->first();
+        return $items
+            ->map(fn ($item) => $this->processItem($this->applyInstance($item, $instances[$item->ID] ?? [])))
+            ->all();
+    }
 
-        $item->MaxStack = $refItemData->MaxStack ?? 0;
-        $item->ItemClass = $refItemData->ItemClass ?? 0;
-
+    private function applyInstance(object $item, array $instance = []): object
+    {
         $item->ID64 = $instance['ID64'] ?? 0;
-        $item->RefItemID = $refItemID;
+        $item->RefItemID = (int) $item->ID;
         $item->Serial64 = $instance['Serial64'] ?? 0;
         $item->Slot = $instance['Slot'] ?? 0;
         $item->Data = $instance['Data'] ?? 0;
@@ -90,21 +92,11 @@ class InventoryService
         $item->nOptValue = $instance['nOptValue'] ?? 0;
         $item->Variance = $instance['Variance'] ?? 0;
 
-        for ($i = 1; $i <= ($refItem->MagParamNum ?? 12); $i++) {
+        for ($i = 1; $i <= ($item->MagParamNum ?? 12); $i++) {
             $item->{"MagParam{$i}"} = $instance["MagParam{$i}"] ?? 0;
         }
 
-        $this->loadItemName($item);
-
-        return $this->processItem($item);
-    }
-
-    /**
-     * Load the localized display name for a single item.
-     */
-    private function loadItemName(object $item): void
-    {
-        $this->itemNames = ItemNameDesc::getItemNames([$item->NameStrID128] ?? []);
+        return $item;
     }
 
     /**

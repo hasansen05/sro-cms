@@ -41,6 +41,18 @@ class RefObjCommon extends Model
      */
     protected $guarded = ['*'];
 
+    /**
+     * Load _RefObjCommon rows (with _RefObjItem data joined) for the given IDs.
+     *
+     * @param  array<int>  $ids
+     */
+    public function scopeJoinItemData($query, array $ids)
+    {
+        return $query->whereIn('dbo._RefObjCommon.ID', $ids)
+            ->leftJoin('dbo._RefObjItem', '_RefObjItem.ID', '=', 'dbo._RefObjCommon.Link')
+            ->select('dbo._RefObjCommon.*', '_RefObjItem.MaxStack AS MaxStack', '_RefObjItem.ItemClass AS ItemClass');
+    }
+
     public function getCodeNameAttribute(): ?string
     {
         return $this->CodeName128;

@@ -143,10 +143,12 @@ class BattlePass extends Model
                 ->values()
                 ->all();
 
-            $itemInfo = [];
             $inventoryService = app(InventoryService::class);
+            $itemInfos = $inventoryService->getItemInfoByRefItem($itemIds);
+
+            $itemInfo = [];
             foreach ($itemIds as $itemId) {
-                $infoItem = $inventoryService->getItemInfoByRefItem($itemId);
+                $infoItem = $itemInfos[$itemId] ?? null;
                 $itemInfo[$itemId] = $infoItem ? [
                     'name' => $infoItem->ItemInfo->ItemName ?? 'Unknown Item',
                     'icon' => preg_replace('/\.png$/i', '', $infoItem->ImgPath),

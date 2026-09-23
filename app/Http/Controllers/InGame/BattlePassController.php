@@ -33,6 +33,13 @@ class BattlePassController extends Controller
             $tiers = BattlePass::getAllTiers();
             $progress = BattlePass::getProgress($record->Points, $tiers);
 
+            $instances = [];
+            foreach ($tiers as $tier) {
+                $instances[$tier['freeItem']['itemID']] = ['Data' => $tier['freeItem']['quantity']];
+                $instances[$tier['vipItem']['itemID']] = ['Data' => $tier['vipItem']['quantity']];
+            }
+            $itemsInfo = app(InventoryService::class)->getItemInfoByRefItem(array_keys($instances), $instances);
+
             foreach ($tiers as &$tier) {
                 $tier['freeClaimed'] = $record->hasClaimedItem($tier['freeItem']['itemID']);
                 $tier['vipClaimed'] = $record->hasClaimedItem($tier['vipItem']['itemID']);
@@ -40,8 +47,15 @@ class BattlePassController extends Controller
                 $tier['canClaimVIP'] = ($progress['currentLevel'] >= $tier['id']) && $record->IsPremium && !$tier['vipClaimed'];
                 $tier['vipLocked'] = !$record->IsPremium;
 
-                $tier['freeItem']['tooltipHtml'] = $this->renderItemTooltip($tier['freeItem'], (int) $char->JID);
-                $tier['vipItem']['tooltipHtml'] = $this->renderItemTooltip($tier['vipItem'], (int) $char->JID);
+                $freeInfo = $itemsInfo[$tier['freeItem']['itemID']] ?? null;
+                $vipInfo = $itemsInfo[$tier['vipItem']['itemID']] ?? null;
+
+                $tier['freeItem']['tooltipHtml'] = $freeInfo
+                    ? $this->renderItemTooltip($freeInfo, (int) $char->JID, $tier['freeItem']['quantity'])
+                    : null;
+                $tier['vipItem']['tooltipHtml'] = $vipInfo
+                    ? $this->renderItemTooltip($vipInfo, (int) $char->JID, $tier['vipItem']['quantity'])
+                    : null;
             }
             unset($tier);
 
@@ -210,18 +224,11 @@ class BattlePassController extends Controller
         return $char->CharID;
     }
 
-    private function renderItemTooltip(array $item, int $jid): ?string
+    private function renderItemTooltip(object $itemInfo, int $jid, int $quantity): ?string
     {
-        $itemInfo = app(InventoryService::class)->getItemInfoByRefItem(
-            (int) $item['itemID'],
-            ['Data' => (int) $item['quantity']],
-        );
-
-        if (!$itemInfo) {
-            return null;
-        }
-
         try {
+            $itemInfo->ItemInfo->Data = $quantity;
+
             return view('pages.ranking.character.partials.inventory.item-blues-whites', [
                 'item' => $itemInfo->ItemInfo,
                 'data' => (object) ['jid' => $jid],
