@@ -28,40 +28,48 @@ class VoucherController extends Controller
             'voucher_code' => 'required|string|max:50',
         ]);
 
-        $voucher = Voucher::where('code', strtoupper(trim($request->voucher_code)))->first();
-        if (!$voucher) {
-            return redirect()->back()->with('error', 'Invalid voucher code.');
-        }
-
-        if ($voucher->jid === $request->user()->jid) {
-            return redirect()->back()->with('error', 'You have already redeemed this voucher.');
-        }
-
-        if ($voucher->status == 'Disabled') {
-            return redirect()->back()->with('error', 'Invalid voucher code.');
-        }
-
-        if ($voucher->status == 'Used') {
-            return redirect()->back()->with('error', 'This voucher has already been used.');
-        }
-
-        if ($voucher->valid_date && Carbon::now()->greaterThan($voucher->valid_date)) {
-            return redirect()->back()->with('error', 'This voucher has expired.');
-        }
-
+        $code = strtoupper(trim($request->voucher_code));
         $user = $request->user();
 
-        DB::transaction(function () use ($user, $voucher) {
-            TbUser::updateSilk($user->jid, $voucher->type, $voucher->amount);
+        // The voucher row is locked and every guard re-checked inside the
+        // transaction, so two simultaneous requests cannot both redeem it.
+        try {
+            DB::transaction(function () use ($code, $user) {
+                $voucher = Voucher::where('code', $code)->lockForUpdate()->first();
 
-            Donate::log([
-                'method' => 'Voucher',
-                'value' => $voucher->amount,
-                'jid' => $user->jid,
-            ]);
+                if (!$voucher) {
+                    throw new \RuntimeException('Invalid voucher code.');
+                }
 
-            $voucher->update(['jid' => $user->jid, 'status' => 'Used']);
-        });
+                if ($voucher->jid === $user->jid) {
+                    throw new \RuntimeException('You have already redeemed this voucher.');
+                }
+
+                if ($voucher->status == 'Disabled') {
+                    throw new \RuntimeException('Invalid voucher code.');
+                }
+
+                if ($voucher->status == 'Used') {
+                    throw new \RuntimeException('This voucher has already been used.');
+                }
+
+                if ($voucher->valid_date && Carbon::now()->greaterThan($voucher->valid_date)) {
+                    throw new \RuntimeException('This voucher has expired.');
+                }
+
+                TbUser::updateSilk($user->jid, $voucher->type, $voucher->amount);
+
+                Donate::log([
+                    'method' => 'Voucher',
+                    'value' => $voucher->amount,
+                    'jid' => $user->jid,
+                ]);
+
+                $voucher->update(['jid' => $user->jid, 'status' => 'Used']);
+            });
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
 
         Cache::forget("vouchers_user_{$user->jid}");
 

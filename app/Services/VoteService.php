@@ -16,7 +16,8 @@ class VoteService
     public function postbackXtremetop100(Request $request)
     {
         $config = config("vote.xtremetop100");
-        $remoteIp = $request->server('HTTP_CF_CONNECTING_IP') ?? $request->ip();
+        // Only the TrustProxies-resolved IP; CF-Connecting-IP is client-spoofable.
+        $remoteIp = $request->ip() ?? '0.0.0.0';
 
         $allowedIps = array_map('trim', explode(',', $config['ip']));
         if (!in_array($remoteIp, $allowedIps, true)) {
@@ -34,16 +35,19 @@ class VoteService
             return response('User not found', 200);
         }
 
-        $now = Carbon::now();
+        // Cooldown row locked + re-checked in-transaction: concurrent postbacks
+        // serialize and only one grants the reward per timeout window.
         $timeout = $config['timeout'] ?? 12;
         $rewardAmount = $config['reward'] ?? 0;
 
-        $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->first();
-        if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
-            return response("Cooldown active until {$voteLog->expire}", 200);
-        }
+        $outcome = DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $timeout) {
+            $now = Carbon::now();
 
-        DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $now, $timeout) {
+            $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->lockForUpdate()->first();
+            if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
+                return 'cooldown:' . $voteLog->expire;
+            }
+
             TbUser::updateSilk($user->jid, $config['type'] ?? 0, $rewardAmount);
 
             Donate::log([
@@ -53,7 +57,13 @@ class VoteService
             ]);
 
             Vote::updateOrCreate(['jid' => $jid, 'site' => $config['route']], ['ip' => $remoteIp, 'expire' => $now->addHours($timeout)]);
+
+            return 'ok';
         });
+
+        if (str_starts_with($outcome, 'cooldown:')) {
+            return response('Cooldown active until ' . substr($outcome, 9), 200);
+        }
 
         return response("OK", 200);
     }
@@ -61,7 +71,8 @@ class VoteService
     public function postbackGtop100(Request $request)
     {
         $config = config("vote.gtop100");
-        $remoteIp = $request->server('HTTP_CF_CONNECTING_IP') ?? $request->ip();
+        // Only the TrustProxies-resolved IP; CF-Connecting-IP is client-spoofable.
+        $remoteIp = $request->ip() ?? '0.0.0.0';
 
         $allowedIps = array_map('trim', explode(',', $config['ip']));
         if (!in_array($remoteIp, $allowedIps, true)) {
@@ -83,16 +94,19 @@ class VoteService
             return response('User not found', 200);
         }
 
-        $now = Carbon::now();
+        // Cooldown row locked + re-checked in-transaction: concurrent postbacks
+        // serialize and only one grants the reward per timeout window.
         $timeout = $config['timeout'] ?? 12;
         $rewardAmount = $config['reward'] ?? 0;
 
-        $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->first();
-        if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
-            return response("Cooldown active until {$voteLog->expire}", 200);
-        }
+        $outcome = DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $timeout) {
+            $now = Carbon::now();
 
-        DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $now, $timeout) {
+            $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->lockForUpdate()->first();
+            if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
+                return 'cooldown:' . $voteLog->expire;
+            }
+
             TbUser::updateSilk($user->jid, $config['type'] ?? 0, $rewardAmount);
 
             Donate::log([
@@ -102,7 +116,13 @@ class VoteService
             ]);
 
             Vote::updateOrCreate(['jid' => $jid, 'site' => $config['route']], ['ip' => $remoteIp, 'expire' => $now->addHours($timeout)]);
+
+            return 'ok';
         });
+
+        if (str_starts_with($outcome, 'cooldown:')) {
+            return response('Cooldown active until ' . substr($outcome, 9), 200);
+        }
 
         return response("OK", 200);
     }
@@ -110,7 +130,8 @@ class VoteService
     public function postbackTopg(Request $request)
     {
         $config = config("vote.topg");
-        $remoteIp = $request->server('HTTP_CF_CONNECTING_IP') ?? $request->ip();
+        // Only the TrustProxies-resolved IP; CF-Connecting-IP is client-spoofable.
+        $remoteIp = $request->ip() ?? '0.0.0.0';
 
         $allowedIps = array_map('trim', explode(',', $config['ip']));
         if (!in_array($remoteIp, $allowedIps, true)) {
@@ -128,16 +149,19 @@ class VoteService
             return response('User not found', 200);
         }
 
-        $now = Carbon::now();
+        // Cooldown row locked + re-checked in-transaction: concurrent postbacks
+        // serialize and only one grants the reward per timeout window.
         $timeout = $config['timeout'] ?? 12;
         $rewardAmount = $config['reward'] ?? 0;
 
-        $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->first();
-        if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
-            return response("Cooldown active until {$voteLog->expire}", 200);
-        }
+        $outcome = DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $timeout) {
+            $now = Carbon::now();
 
-        DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $now, $timeout) {
+            $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->lockForUpdate()->first();
+            if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
+                return 'cooldown:' . $voteLog->expire;
+            }
+
             TbUser::updateSilk($user->jid, $config['type'] ?? 0, $rewardAmount);
 
             Donate::log([
@@ -147,7 +171,13 @@ class VoteService
             ]);
 
             Vote::updateOrCreate(['jid' => $jid, 'site' => $config['route']], ['ip' => $remoteIp, 'expire' => $now->addHours($timeout)]);
+
+            return 'ok';
         });
+
+        if (str_starts_with($outcome, 'cooldown:')) {
+            return response('Cooldown active until ' . substr($outcome, 9), 200);
+        }
 
         return response("OK", 200);
     }
@@ -155,7 +185,8 @@ class VoteService
     public function postbackTop100arena(Request $request)
     {
         $config = config("vote.top100arena");
-        $remoteIp = $request->server('HTTP_CF_CONNECTING_IP') ?? $request->ip();
+        // Only the TrustProxies-resolved IP; CF-Connecting-IP is client-spoofable.
+        $remoteIp = $request->ip() ?? '0.0.0.0';
 
         $allowedIps = array_map('trim', explode(',', $config['ip']));
         if (!in_array($remoteIp, $allowedIps, true)) {
@@ -173,16 +204,19 @@ class VoteService
             return response('User not found', 200);
         }
 
-        $now = Carbon::now();
+        // Cooldown row locked + re-checked in-transaction: concurrent postbacks
+        // serialize and only one grants the reward per timeout window.
         $timeout = $config['timeout'] ?? 12;
         $rewardAmount = $config['reward'] ?? 0;
 
-        $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->first();
-        if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
-            return response("Cooldown active until {$voteLog->expire}", 200);
-        }
+        $outcome = DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $timeout) {
+            $now = Carbon::now();
 
-        DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $now, $timeout) {
+            $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->lockForUpdate()->first();
+            if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
+                return 'cooldown:' . $voteLog->expire;
+            }
+
             TbUser::updateSilk($user->jid, $config['type'] ?? 0, $rewardAmount);
 
             Donate::log([
@@ -192,7 +226,13 @@ class VoteService
             ]);
 
             Vote::updateOrCreate(['jid' => $jid, 'site' => $config['route']], ['ip' => $remoteIp, 'expire' => $now->addHours($timeout)]);
+
+            return 'ok';
         });
+
+        if (str_starts_with($outcome, 'cooldown:')) {
+            return response('Cooldown active until ' . substr($outcome, 9), 200);
+        }
 
         return response("OK", 200);
     }
@@ -200,7 +240,8 @@ class VoteService
     public function postbackArenatop100(Request $request)
     {
         $config = config("vote.arenatop100");
-        $remoteIp = $request->server('HTTP_CF_CONNECTING_IP') ?? $request->ip();
+        // Only the TrustProxies-resolved IP; CF-Connecting-IP is client-spoofable.
+        $remoteIp = $request->ip() ?? '0.0.0.0';
 
         $allowedIps = array_map('trim', explode(',', $config['ip']));
         if (!in_array($remoteIp, $allowedIps, true)) {
@@ -222,16 +263,19 @@ class VoteService
             return response('User not found', 200);
         }
 
-        $now = Carbon::now();
+        // Cooldown row locked + re-checked in-transaction: concurrent postbacks
+        // serialize and only one grants the reward per timeout window.
         $timeout = $config['timeout'] ?? 12;
         $rewardAmount = $config['reward'] ?? 0;
 
-        $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->first();
-        if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
-            return response("Cooldown active until {$voteLog->expire}", 200);
-        }
+        $outcome = DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $timeout) {
+            $now = Carbon::now();
 
-        DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $now, $timeout) {
+            $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->lockForUpdate()->first();
+            if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
+                return 'cooldown:' . $voteLog->expire;
+            }
+
             TbUser::updateSilk($user->jid, $config['type'] ?? 0, $rewardAmount);
 
             Donate::log([
@@ -241,7 +285,13 @@ class VoteService
             ]);
 
             Vote::updateOrCreate(['jid' => $jid, 'site' => $config['route']], ['ip' => $remoteIp, 'expire' => $now->addHours($timeout)]);
+
+            return 'ok';
         });
+
+        if (str_starts_with($outcome, 'cooldown:')) {
+            return response('Cooldown active until ' . substr($outcome, 9), 200);
+        }
 
         return response("OK", 200);
     }
@@ -249,7 +299,8 @@ class VoteService
     public function postbackSilkroadservers(Request $request)
     {
         $config = config("vote.silkroadservers");
-        $remoteIp = $request->server('HTTP_CF_CONNECTING_IP') ?? $request->ip();
+        // Only the TrustProxies-resolved IP; CF-Connecting-IP is client-spoofable.
+        $remoteIp = $request->ip() ?? '0.0.0.0';
 
         $allowedIps = array_map('trim', explode(',', $config['ip']));
         if (!in_array($remoteIp, $allowedIps, true)) {
@@ -267,16 +318,19 @@ class VoteService
             return response('User not found', 200);
         }
 
-        $now = Carbon::now();
+        // Cooldown row locked + re-checked in-transaction: concurrent postbacks
+        // serialize and only one grants the reward per timeout window.
         $timeout = $config['timeout'] ?? 12;
         $rewardAmount = $config['reward'] ?? 0;
 
-        $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->first();
-        if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
-            return response("Cooldown active until {$voteLog->expire}", 200);
-        }
+        $outcome = DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $timeout) {
+            $now = Carbon::now();
 
-        DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $now, $timeout) {
+            $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->lockForUpdate()->first();
+            if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
+                return 'cooldown:' . $voteLog->expire;
+            }
+
             TbUser::updateSilk($user->jid, $config['type'] ?? 0, $rewardAmount);
 
             Donate::log([
@@ -286,7 +340,13 @@ class VoteService
             ]);
 
             Vote::updateOrCreate(['jid' => $jid, 'site' => $config['route']], ['ip' => $remoteIp, 'expire' => $now->addHours($timeout)]);
+
+            return 'ok';
         });
+
+        if (str_starts_with($outcome, 'cooldown:')) {
+            return response('Cooldown active until ' . substr($outcome, 9), 200);
+        }
 
         return response("OK", 200);
     }
@@ -294,7 +354,8 @@ class VoteService
     public function postbackPrivateserver(Request $request)
     {
         $config = config("vote.privateserver");
-        $remoteIp = $request->server('HTTP_CF_CONNECTING_IP') ?? $request->ip();
+        // Only the TrustProxies-resolved IP; CF-Connecting-IP is client-spoofable.
+        $remoteIp = $request->ip() ?? '0.0.0.0';
 
         $allowedIps = array_map('trim', explode(',', $config['ip']));
         if (!in_array($remoteIp, $allowedIps, true)) {
@@ -312,16 +373,19 @@ class VoteService
             return response('User not found', 200);
         }
 
-        $now = Carbon::now();
+        // Cooldown row locked + re-checked in-transaction: concurrent postbacks
+        // serialize and only one grants the reward per timeout window.
         $timeout = $config['timeout'] ?? 12;
         $rewardAmount = $config['reward'] ?? 0;
 
-        $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->first();
-        if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
-            return response("Cooldown active until {$voteLog->expire}", 200);
-        }
+        $outcome = DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $timeout) {
+            $now = Carbon::now();
 
-        DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $now, $timeout) {
+            $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->lockForUpdate()->first();
+            if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
+                return 'cooldown:' . $voteLog->expire;
+            }
+
             TbUser::updateSilk($user->jid, $config['type'] ?? 0, $rewardAmount);
 
             Donate::log([
@@ -331,7 +395,13 @@ class VoteService
             ]);
 
             Vote::updateOrCreate(['jid' => $jid, 'site' => $config['route']], ['ip' => $remoteIp, 'expire' => $now->addHours($timeout)]);
+
+            return 'ok';
         });
+
+        if (str_starts_with($outcome, 'cooldown:')) {
+            return response('Cooldown active until ' . substr($outcome, 9), 200);
+        }
 
         return response("OK", 200);
     }
@@ -339,7 +409,8 @@ class VoteService
     public function postbackVote4rewards(Request $request)
     {
         $config = config("vote.vote4rewards");
-        $remoteIp = $request->server('HTTP_CF_CONNECTING_IP') ?? $request->ip();
+        // Only the TrustProxies-resolved IP; CF-Connecting-IP is client-spoofable.
+        $remoteIp = $request->ip() ?? '0.0.0.0';
 
         $allowedIps = array_map('trim', explode(',', $config['ip']));
         if (!in_array($remoteIp, $allowedIps, true)) {
@@ -348,9 +419,9 @@ class VoteService
         }
 
         $serverId = $request->input('server_uuid');
-        $webhookSecret = $config['webhook_secret'];
+        $webhookSecret = (string) ($config['webhook_secret'] ?? '');
         $signature = $request->header('X-Webhook-Signature');
-        if ($signature !== $webhookSecret) {
+        if ($webhookSecret === '' || !is_string($signature) || !hash_equals($webhookSecret, $signature)) {
             return response('Wrong Signature', 403);
         }
 
@@ -364,16 +435,18 @@ class VoteService
             return response('User not found', 200);
         }
 
-        $now = Carbon::now();
+        // Cooldown row locked + re-checked in-transaction (see other handlers).
         $timeout = $config['timeout'] ?? 6;
         $rewardAmount = $config['reward'] ?? 0;
 
-        $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->first();
-        if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
-            return response("Cooldown active until {$voteLog->expire}", 200);
-        }
+        $outcome = DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $timeout) {
+            $now = Carbon::now();
 
-        DB::transaction(function () use ($user, $rewardAmount, $config, $jid, $remoteIp, $now, $timeout) {
+            $voteLog = Vote::where('jid', $jid)->where('site', $config['route'])->lockForUpdate()->first();
+            if ($voteLog && $voteLog->expire && $now->lessThan(Carbon::parse($voteLog->expire))) {
+                return 'cooldown:' . $voteLog->expire;
+            }
+
             TbUser::updateSilk($user->jid, $config['type'] ?? 0, $rewardAmount);
 
             Donate::log([
@@ -383,7 +456,13 @@ class VoteService
             ]);
 
             Vote::updateOrCreate(['jid' => $jid, 'site' => $config['route']], ['ip' => $remoteIp, 'expire' => $now->addHours($timeout)]);
+
+            return 'ok';
         });
+
+        if (str_starts_with($outcome, 'cooldown:')) {
+            return response('Cooldown active until ' . substr($outcome, 9), 200);
+        }
 
         return response("OK", 200);
     }

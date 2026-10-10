@@ -152,9 +152,11 @@ class DonateService
             return back()->withErrors(['paypal' => 'User not found.'])->withInput();
         }
 
-        DB::transaction(function () use ($user, $package, $order) {
-            TbUser::updateSilk($user->jid, $package['type'], $package['value']);
-
+        // Idempotent claim on UNIQUE(transaction_id): the row is written
+        // BEFORE Silk is credited, so concurrent callbacks serialize here and
+        // only one proceeds. Fail-closed: a crash after insert needs manual
+        // reconcile instead of risking double Silk on retry.
+        try {
             Donate::log([
                 'method' => 'PayPal',
                 'transaction_id' => $order['id'],
@@ -164,7 +166,15 @@ class DonateService
                 'value' => $package['value'],
                 'jid' => $user->jid,
             ]);
-        });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ((string) $e->getCode() === '23000') {
+                return redirect()->route('account.donate')->with('success', __('Payment already processed.'));
+            }
+
+            throw $e;
+        }
+
+        TbUser::updateSilk($user->jid, $package['type'], $package['value']);
 
         return redirect()->route('account.donate')->with('success', number_format($package['value']) . ' ' . __('Silk has been added to your account.'));
     }
@@ -281,10 +291,19 @@ class DonateService
             return response('User not found', 404);
         }
 
-        DB::transaction(function () use ($user, $package, $donate) {
-            TbUser::updateSilk($user->jid, $package['type'], $package['value']);
-            $donate->update(['status' => 'success']);
-        });
+        try {
+            DB::transaction(function () use ($user, $package, $donate) {
+                $row = Donate::whereKey($donate->id)->lockForUpdate()->first();
+                if (!$row || $row->status !== 'pending') {
+                    throw new \RuntimeException('Transaction not found or already processed.');
+                }
+
+                TbUser::updateSilk($user->jid, $package['type'], $package['value']);
+                $row->update(['status' => 'success']);
+            });
+        } catch (\RuntimeException $e) {
+            return response('Transaction not found or already processed.', 409);
+        }
 
         return response('OK', 200);
     }
@@ -384,10 +403,19 @@ class DonateService
             return response('User not found', 404);
         }
 
-        DB::transaction(function () use ($user, $package, $donate) {
-            TbUser::updateSilk($user->jid, $package['type'], $package['value']);
-            $donate->update(['status' => 'success']);
-        });
+        try {
+            DB::transaction(function () use ($user, $package, $donate) {
+                $row = Donate::whereKey($donate->id)->lockForUpdate()->first();
+                if (!$row || $row->status !== 'pending') {
+                    throw new \RuntimeException('Transaction not found or already processed.');
+                }
+
+                TbUser::updateSilk($user->jid, $package['type'], $package['value']);
+                $row->update(['status' => 'success']);
+            });
+        } catch (\RuntimeException $e) {
+            return response('Transaction not found or already processed.', 409);
+        }
 
         return response('OK', 200);
     }
@@ -509,10 +537,19 @@ class DonateService
             return response('User not found', 404);
         }
 
-        DB::transaction(function () use ($user, $package, $donate) {
-            TbUser::updateSilk($user->jid, $package['type'], $package['value']);
-            $donate->update(['status' => 'success']);
-        });
+        try {
+            DB::transaction(function () use ($user, $package, $donate) {
+                $row = Donate::whereKey($donate->id)->lockForUpdate()->first();
+                if (!$row || $row->status !== 'pending') {
+                    throw new \RuntimeException('Transaction not found or already processed.');
+                }
+
+                TbUser::updateSilk($user->jid, $package['type'], $package['value']);
+                $row->update(['status' => 'success']);
+            });
+        } catch (\RuntimeException $e) {
+            return response('Transaction not found or already processed.', 409);
+        }
 
         return response('OK', 200);
     }
@@ -561,9 +598,10 @@ class DonateService
             return back()->withErrors(['maxicard' => 'Invalid package price.'])->withInput();
         }
 
-        DB::transaction(function () use ($user, $package, $xml) {
-            TbUser::updateSilk($user->jid, $package['type'], $package['value']);
-
+        // Same e-PIN must never credit twice: claim the provider order id
+        // BEFORE crediting (see PayPal). Failed provider responses create no
+        // row, so legitimate retries still proceed.
+        try {
             Donate::log([
                 'method' => 'MaxiCard',
                 'transaction_id' => intval(trim($xml->params->siparis_no)),
@@ -573,7 +611,15 @@ class DonateService
                 'value' => $package['value'],
                 'jid' => $user->jid,
             ]);
-        });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ((string) $e->getCode() === '23000') {
+                return redirect()->route('account.donate')->with('success', __('Payment already processed.'));
+            }
+
+            throw $e;
+        }
+
+        TbUser::updateSilk($user->jid, $package['type'], $package['value']);
 
         return redirect()->route('account.donate')->with('success', number_format($package['value']) . ' ' . __('Silk has been added to your account.'));
     }
@@ -608,19 +654,30 @@ class DonateService
             return back()->withErrors(['hipocard' => 'Invalid package price.'])->withInput();
         }
 
-        DB::transaction(function () use ($user, $package) {
-            TbUser::updateSilk($user->jid, $package['type'], $package['value']);
+        // Deterministic idempotency key from the e-PIN (a fresh random id per
+        // request would defeat UNIQUE(transaction_id) and let one e-PIN pay
+        // twice). Insert BEFORE crediting (see PayPal).
+        $transactionId = 'hipocard-' . substr(hash('sha256', 'hipocard|' . trim($request->code)), 0, 32);
 
+        try {
             Donate::log([
                 'method' => 'HipoCard',
-                'transaction_id' => uniqid() . rand(100, 999),
+                'transaction_id' => $transactionId,
                 'status' => 'success',
                 'amount' => $package['price'],
                 'type' => $package['type'],
                 'value' => $package['value'],
                 'jid' => $user->jid,
             ]);
-        });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ((string) $e->getCode() === '23000') {
+                return redirect()->route('account.donate')->with('success', __('Payment already processed.'));
+            }
+
+            throw $e;
+        }
+
+        TbUser::updateSilk($user->jid, $package['type'], $package['value']);
 
         return redirect()->route('account.donate')->with('success', number_format($package['value']) . ' ' . __('Silk has been added to your account.'));
     }
@@ -714,13 +771,22 @@ class DonateService
             return response('Invalid package price', 422);
         }
 
-        DB::transaction(function () use ($user, $package, $data, $donate) {
-            TbUser::updateSilk($user->jid, $package['type'], $package['value']);
-            $donate->update([
-                'status' => 'success',
-                'transaction_id' => (string) $data['transaction_id'],
-            ]);
-        });
+        try {
+            DB::transaction(function () use ($user, $package, $data, $donate) {
+                $row = Donate::whereKey($donate->id)->lockForUpdate()->first();
+                if (!$row || $row->status !== 'pending') {
+                    throw new \RuntimeException('Transaction already processed.');
+                }
+
+                TbUser::updateSilk($user->jid, $package['type'], $package['value']);
+                $row->update([
+                    'status' => 'success',
+                    'transaction_id' => (string) $data['transaction_id'],
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            return response('Transaction already processed.', 409);
+        }
 
         return response('OK', 200);
     }
