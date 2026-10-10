@@ -76,7 +76,9 @@
             </a>
 
             <ul class="dropdown-menu dropdown-menu-end shadow position-absolute" aria-labelledby="userDropdown">
+                @if(auth()->user()->tbUser)
                 <li><a class="dropdown-item" href="{{ route('admin.users.view', auth()->user()->tbUser->JID) }}">Profile</a></li>
+                @endif
                 <li><a class="dropdown-item" href="{{ route('account.edit') }}">Settings</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li>

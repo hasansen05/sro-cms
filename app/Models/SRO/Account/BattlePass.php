@@ -6,6 +6,7 @@ use App\Models\SRO\Shard\Char;
 use App\Services\InventoryService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class BattlePass extends Model
 {
@@ -279,41 +280,56 @@ class BattlePass extends Model
             throw new \InvalidArgumentException('Tier not found');
         }
 
-        $record = self::getOrCreateForChar($charID);
+        return DB::connection('account')->transaction(function () use ($charID, $tierID, $claimType, $currentLevel, $targetTier) {
+            $record = self::where('CharID', $charID)->lockForUpdate()->first();
+            if (!$record) {
+                $record = self::create([
+                    'CharID' => $charID,
+                    'IsPremium' => 0,
+                    'Points' => 0,
+                    'ClaimedItems' => '',
+                ]);
+                $record = self::where('CharID', $charID)->lockForUpdate()->first() ?? $record;
+            }
 
-        if ($claimType === 'vip' && !$record->IsPremium) {
-            throw new \InvalidArgumentException('You need Premium Pass to claim VIP rewards!');
-        }
+            if ($claimType === 'vip' && !$record->IsPremium) {
+                throw new \InvalidArgumentException('You need Premium Pass to claim VIP rewards!');
+            }
 
-        $itemID = ($claimType === 'vip') ? $targetTier['vipItem']['itemID'] : $targetTier['freeItem']['itemID'];
-        $quantity = ($claimType === 'vip') ? $targetTier['vipItem']['quantity'] : $targetTier['freeItem']['quantity'];
+            $itemID = ($claimType === 'vip') ? $targetTier['vipItem']['itemID'] : $targetTier['freeItem']['itemID'];
+            $quantity = ($claimType === 'vip') ? $targetTier['vipItem']['quantity'] : $targetTier['freeItem']['quantity'];
 
-        if ($record->hasClaimedItem($itemID)) {
-            throw new \InvalidArgumentException('You already claimed this item!');
-        }
+            if ($record->hasClaimedItem($itemID)) {
+                throw new \InvalidArgumentException('You already claimed this item!');
+            }
 
-        if ($currentLevel < $tierID) {
-            throw new \InvalidArgumentException('Not enough level to claim this item!');
-        }
+            $level = $currentLevel;
+            if ($record) {
+                $level = self::getProgress($record->Points, self::getAllTiers())['currentLevel'];
+            }
+            if ($level < $tierID) {
+                throw new \InvalidArgumentException('Not enough level to claim this item!');
+            }
 
-        $char = Char::find($charID);
-        if (!$char) {
-            throw new \InvalidArgumentException('Character does not exist');
-        }
+            $char = Char::find($charID);
+            if (!$char) {
+                throw new \InvalidArgumentException('Character does not exist');
+            }
 
-        $char->deliverItem($itemID, $quantity);
+            $char->deliverItem($itemID, $quantity);
 
-        $currentClaimed = $record->getClaimedItemsArray();
-        $newClaimed = empty($currentClaimed)
-            ? (string) $itemID
-            : implode(',', $currentClaimed) . ',' . $itemID;
+            $currentClaimed = $record->getClaimedItemsArray();
+            $newClaimed = empty($currentClaimed)
+                ? (string) $itemID
+                : implode(',', $currentClaimed) . ',' . $itemID;
 
-        $record->update(['ClaimedItems' => $newClaimed]);
+            $record->update(['ClaimedItems' => $newClaimed]);
 
-        $itemName = ($claimType === 'vip') ? $targetTier['vipItem']['name'] : $targetTier['freeItem']['name'];
-        self::notifyCharacter($charID, "Claimed x{$quantity} {$itemName}", 1);
+            $itemName = ($claimType === 'vip') ? $targetTier['vipItem']['name'] : $targetTier['freeItem']['name'];
+            self::notifyCharacter($charID, "Claimed x{$quantity} {$itemName}", 1);
 
-        return $record;
+            return $record;
+        });
     }
 
     public static function purchasePremium(int $charID): int
@@ -322,29 +338,40 @@ class BattlePass extends Model
             throw new \InvalidArgumentException('Premium Pass is currently disabled.');
         }
 
-        $record = self::getOrCreateForChar($charID);
-        if ($record->IsPremium) {
-            throw new \InvalidArgumentException('You are already premium!');
-        }
+        return DB::connection('account')->transaction(function () use ($charID) {
+            $record = self::where('CharID', $charID)->lockForUpdate()->first();
+            if (!$record) {
+                $record = self::create([
+                    'CharID' => $charID,
+                    'IsPremium' => 0,
+                    'Points' => 0,
+                    'ClaimedItems' => '',
+                ]);
+            }
 
-        $jid = Char::find($charID)?->JID;
-        if (!$jid) {
-            throw new \InvalidArgumentException('Unable to get JID for this character');
-        }
+            if ($record->IsPremium) {
+                throw new \InvalidArgumentException('You are already premium!');
+            }
 
-        $premiumPrice = (int) config('ingame.battlepass.premium_price');
-        $currentSilk = self::getSilk($jid);
-        if ($currentSilk < $premiumPrice) {
-            throw new \InvalidArgumentException('Insufficient Silk amount. You need ' . $premiumPrice . ' Silk.');
-        }
+            $jid = Char::find($charID)?->JID;
+            if (!$jid) {
+                throw new \InvalidArgumentException('Unable to get JID for this character');
+            }
 
-        TbUser::updateSilk($jid, self::silkType(), -$premiumPrice);
-        self::forgetSilkCache($jid);
-        $record->update(['IsPremium' => 1]);
+            $premiumPrice = (int) config('ingame.battlepass.premium_price');
+            $currentSilk = self::getSilk($jid);
+            if ($currentSilk < $premiumPrice) {
+                throw new \InvalidArgumentException('Insufficient Silk amount. You need ' . $premiumPrice . ' Silk.');
+            }
 
-        self::notifyCharacter($charID, 'Premium Pass activated!', 1);
+            TbUser::updateSilk($jid, self::silkType(), -$premiumPrice);
+            self::forgetSilkCache($jid);
+            $record->update(['IsPremium' => 1]);
 
-        return self::getSilk($jid);
+            self::notifyCharacter($charID, 'Premium Pass activated!', 1);
+
+            return self::getSilk($jid);
+        });
     }
 
     public static function purchasePoints(int $charID, int $qty): int
@@ -358,28 +385,40 @@ class BattlePass extends Model
             throw new \InvalidArgumentException('Unable to get JID for this character');
         }
 
-        $record = self::getOrCreateForChar($charID);
+        return DB::connection('account')->transaction(function () use ($charID, $qty, $jid) {
+            $record = self::where('CharID', $charID)->lockForUpdate()->first();
+            if (!$record) {
+                $record = self::create([
+                    'CharID' => $charID,
+                    'IsPremium' => 0,
+                    'Points' => 0,
+                    'ClaimedItems' => '',
+                ]);
+            }
 
-        $pointsPerPurchase = (int) config('ingame.battlepass.points_per_purchase');
-        $silkPerPoint = (int) config('ingame.battlepass.silk_per_point');
-        $totalCost = $qty * $silkPerPoint;
-        $currentSilk = self::getSilk($jid);
-        if ($currentSilk < $totalCost) {
-            throw new \InvalidArgumentException('Insufficient Silk amount. You need ' . $totalCost . ' Silk.');
-        }
+            $pointsPerPurchase = (int) config('ingame.battlepass.points_per_purchase');
+            $silkPerPoint = (int) config('ingame.battlepass.silk_per_point');
+            $totalCost = $qty * $silkPerPoint;
+            $currentSilk = self::getSilk($jid);
+            if ($currentSilk < $totalCost) {
+                throw new \InvalidArgumentException('Insufficient Silk amount. You need ' . $totalCost . ' Silk.');
+            }
 
-        TbUser::updateSilk($jid, self::silkType(), -$totalCost);
-        self::forgetSilkCache($jid);
-        $record->increment('Points', $qty * $pointsPerPurchase);
+            TbUser::updateSilk($jid, self::silkType(), -$totalCost);
+            self::forgetSilkCache($jid);
+            $record->increment('Points', $qty * $pointsPerPurchase);
 
-        self::notifyCharacter($charID, "Purchased {$qty}x points for the Battle Pass!", 1);
+            self::notifyCharacter($charID, "Purchased {$qty}x points for the Battle Pass!", 1);
 
-        return self::getSilk($jid);
+            return self::getSilk($jid);
+        });
     }
+
+    public const MAX_ADD_POINTS = 100;
 
     public static function addPoints(int $charID, int $points): bool
     {
-        if ($points <= 0) {
+        if ($points <= 0 || $points > self::MAX_ADD_POINTS) {
             throw new \InvalidArgumentException('Invalid points amount');
         }
 

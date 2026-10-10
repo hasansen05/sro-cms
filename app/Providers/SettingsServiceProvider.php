@@ -319,9 +319,12 @@ class SettingsServiceProvider extends ServiceProvider
             return;
         }
 
-        // Deep-merge: DB value wins for keys it contains, but config-file defaults
-        // fill in any keys the user has never explicitly saved (e.g. a new widget
-        // added in a later release that doesn't exist in the DB blob yet).
+        if ($settingKey === 'donate') {
+            Config::set($configKey, $this->mergeDonateConfig(config($configKey, []), $decoded));
+
+            return;
+        }
+
         $defaults = config($configKey, []);
         if (is_array($defaults) && is_array($decoded)) {
             $merged = array_replace_recursive($defaults, $decoded);
@@ -330,6 +333,32 @@ class SettingsServiceProvider extends ServiceProvider
         }
 
         Config::set($configKey, $merged);
+    }
+
+    private function mergeDonateConfig(array $defaults, array $saved): array
+    {
+        $merged = $defaults;
+
+        foreach ($saved as $key => $gateway) {
+            if (! is_array($gateway)) {
+                $merged[$key] = $gateway;
+
+                continue;
+            }
+
+            $base = isset($merged[$key]) && is_array($merged[$key]) ? $merged[$key] : [];
+            $mergedGateway = array_replace_recursive($base, $gateway);
+
+            if (array_key_exists('package', $gateway)) {
+                $mergedGateway['package'] = is_array($gateway['package'])
+                    ? array_values($gateway['package'])
+                    : [];
+            }
+
+            $merged[$key] = $mergedGateway;
+        }
+
+        return $merged;
     }
 
     /*

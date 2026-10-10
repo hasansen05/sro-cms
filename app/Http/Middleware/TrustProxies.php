@@ -8,12 +8,30 @@ use Illuminate\Http\Request;
 class TrustProxies extends Middleware
 {
     /**
-     * Trust all proxies (Cloudflare IPs are dynamic and can change).
+     * Trusted proxies, resolved from the TRUSTED_PROXIES environment value
+     * (comma-separated IPs/CIDRs, or `*` to trust all).
      */
-    protected $proxies = '*';
+    protected $proxies;
+
+    public function __construct()
+    {
+        $raw = trim((string) env('TRUSTED_PROXIES', ''));
+
+        if ($raw === '' || strtolower($raw) === 'none') {
+            $this->proxies = null;
+        } elseif ($raw === '*') {
+            $this->proxies = '*';
+        } else {
+            $this->proxies = array_values(array_filter(array_map(
+                fn ($v) => trim($v),
+                explode(',', $raw)
+            )));
+        }
+    }
 
     /**
-     * Use forwarded headers
+     * Use forwarded headers (only honored for requests coming through a
+     * trusted proxy, see above).
      */
     protected $headers =
         Request::HEADER_X_FORWARDED_FOR |

@@ -661,6 +661,15 @@ class DonateService
         if ($response->successful() && $response->json('success') === true) {
             $paymentUrl = $response->json('data.payment_url');
             if ($paymentUrl) {
+                Donate::log([
+                    'method' => 'HipoPay',
+                    'status' => 'pending',
+                    'amount' => $package['price'],
+                    'type' => $package['type'],
+                    'value' => $package['value'],
+                    'jid' => $user->jid,
+                ]);
+
                 return redirect()->away($paymentUrl);
             }
         }
@@ -691,26 +700,25 @@ class DonateService
             return response('Transaction already processed.', 409);
         }
 
-        $package = collect($config['package'])->firstWhere('price', intval($data['payment_total'] / 100));
-        if (!$package) {
-            return response('Invalid package price', 422);
-        }
-
         if ($data['status'] !== 'success') {
             return response('Payment not successful', 422);
         }
 
-        DB::transaction(function () use ($user, $package, $data) {
-            TbUser::updateSilk($user->jid, $package['type'], $package['value']);
+        $donate = Donate::where('method', 'HipoPay')->where('jid', $user->jid)->where('status', 'pending')->where('amount', intval($data['payment_total'] / 100))->latest('id')->first();
+        if (!$donate) {
+            return response('No matching pending transaction.', 422);
+        }
 
-            Donate::log([
-                'method' => 'HipoPay',
-                'transaction_id' => $data['transaction_id'],
-                'status' => $data['status'],
-                'amount' => $package['price'],
-                'type' => $package['type'],
-                'value' => $package['value'],
-                'jid' => $user->jid,
+        $package = collect($config['package'])->firstWhere('price', (int) $donate->amount);
+        if (!$package) {
+            return response('Invalid package price', 422);
+        }
+
+        DB::transaction(function () use ($user, $package, $data, $donate) {
+            TbUser::updateSilk($user->jid, $package['type'], $package['value']);
+            $donate->update([
+                'status' => 'success',
+                'transaction_id' => (string) $data['transaction_id'],
             ]);
         });
 

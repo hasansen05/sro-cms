@@ -18,11 +18,11 @@ Route::prefix('game')->middleware('nocache')->name('game.')->group(function() {
     Route::any('/battle-pass', [BattlePassController::class, 'index'])->name('battlepass');
 
     Route::prefix('battlepass')->name('battlepass.')->group(function () {
-        Route::get('/tiers', [BattlePassController::class, 'tiers'])->name('tiers');
-        Route::post('/claim', [BattlePassController::class, 'claim'])->name('claim');
-        Route::post('/purchase-premium', [BattlePassController::class, 'purchasePremium'])->name('purchase-premium');
-        Route::post('/purchase-points', [BattlePassController::class, 'purchasePoints'])->name('purchase-points');
-        Route::post('/add-points', [BattlePassController::class, 'addPoints'])->name('add-points');
-        Route::get('/silk', [BattlePassController::class, 'getSilk'])->name('silk');
+        Route::get('/tiers', [BattlePassController::class, 'tiers'])->middleware('throttle:60,1')->name('tiers');
+        Route::post('/claim', [BattlePassController::class, 'claim'])->middleware('throttle:10,1')->name('claim');
+        Route::post('/purchase-premium', [BattlePassController::class, 'purchasePremium'])->middleware('throttle:10,1')->name('purchase-premium');
+        Route::post('/purchase-points', [BattlePassController::class, 'purchasePoints'])->middleware('throttle:10,1')->name('purchase-points');
+        Route::post('/add-points', [BattlePassController::class, 'addPoints'])->middleware('throttle:10,1')->name('add-points');
+        Route::get('/silk', [BattlePassController::class, 'getSilk'])->middleware('throttle:60,1')->name('silk');
     });
 });

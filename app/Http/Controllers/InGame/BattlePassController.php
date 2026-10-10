@@ -210,16 +210,34 @@ class BattlePassController extends Controller
             ], 403);
         }
 
+        if (! (bool) config('ingame.battlepass.allow_add_points', false)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Adding points is currently disabled.',
+                'error' => 'Adding points is currently disabled.',
+            ], 403);
+        }
+
+        if (! auth()->check() || ! (bool) (auth()->user()->role?->is_admin)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden.',
+                'error' => 'Forbidden.',
+            ], 403);
+        }
+
         try {
-            $points = (int) $request->input('points', 0);
+            $validated = $request->validate([
+                'points' => 'required|integer|min:1|max:100',
+            ]);
             $charID = $this->resolveCharID($request);
 
-            $added = BattlePass::addPoints($charID, $points);
+            $added = BattlePass::addPoints($charID, (int) $validated['points']);
 
             return response()->json([
                 'success' => $added,
                 'message' => $added ? 'Points added successfully!' : 'Failed to add points',
-                'pointsAdded' => $points,
+                'pointsAdded' => (int) $validated['points'],
             ]);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()], 422);
@@ -267,6 +285,10 @@ class BattlePassController extends Controller
         $char = Char::where('CharName16', $charname)->first();
         if (!$char) {
             throw new \InvalidArgumentException('Character not found: ' . $charname);
+        }
+
+        if (auth()->check() && (int) $char->JID !== (int) auth()->user()->jid) {
+            throw new \InvalidArgumentException('Forbidden.');
         }
 
         return $char->CharID;

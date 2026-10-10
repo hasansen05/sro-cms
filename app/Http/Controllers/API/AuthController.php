@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -170,9 +171,13 @@ class AuthController extends Controller
         $result = $this->sendVerifyCode($user);
 
         if ($result) {
-            $result['token'] = $user->createToken('api-token')->plainTextToken;
+            $challenge = $user->createToken('api-verify-challenge', ['verify-code'], now()->addMinutes(30))->plainTextToken;
 
-            return response()->json($result);
+            return response()->json([
+                'message' => 'Verify code sent',
+                'verify_required' => true,
+                'challenge_token' => $challenge,
+            ], 403);
         }
 
         $token = $user->createToken('api-token')->plainTextToken;
@@ -219,7 +224,18 @@ class AuthController extends Controller
 
         Cache::forget('verify_code_'.$user->email);
 
-        return response()->json(['message' => 'Verification successful']);
+        $current = $user->currentAccessToken();
+        if ($current instanceof PersonalAccessToken) {
+            $current->delete();
+        }
+
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Verification successful',
+            'token' => $token,
+            'user' => $user,
+        ]);
     }
 
     public function resendVerify(Request $request)
@@ -266,6 +282,11 @@ class AuthController extends Controller
 
     public function profile(Request $request)
     {
+        $token = $request->user()->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken && $token->cant('api-access')) {
+            abort(403, 'Verification required.');
+        }
         return response()->json($request->user());
     }
 }
